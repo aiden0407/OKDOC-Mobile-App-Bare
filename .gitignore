@@ -1,0 +1,7 @@
+# dependencies
+.expo/
+node_modules/
+
+# macOS
+.DS_Store
+production.js

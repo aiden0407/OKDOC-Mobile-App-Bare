@@ -1,0 +1,86 @@
+{
+  "expo": {
+    "name": "OK DOC",
+    "slug": "okdoc",
+    "version": "2.1.0",
+    "icon": "./src/assets/main/main_icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./src/assets/main/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#5500CC"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "plugins": [
+      "expo-apple-authentication",
+      [
+        "expo-screen-orientation",
+        {
+          "initialOrientation": "DEFAULT"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "상담 예약 시 사진 첨부를 위해 이미지 권한을 허용해야 합니다.",
+          "cameraPermission": "상담 예약 시 사진 첨부를 위해 사진 권한을 허용해야 합니다."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./src/assets/main/main_icon.png",
+          "color": "#ffffff"
+        }
+      ],
+      "expo-localization"
+    ],
+    "ios": {
+      "buildNumber": "1",
+      "bundleIdentifier": "kr.co.insunginfo.okdoc",
+      "icon": "./src/assets/main/main_icon.png",
+      "supportsTablet": false,
+      "requireFullScreen": true,
+      "usesAppleSignIn": true,
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "상담 예약 시 사진 첨부를 위해 라이브러리 권한을 허용해야 합니다.",
+        "NSCameraUsageDescription": "화상 상담을 진행하기 위해서는 카메라 권한을 허용해야 합니다.",
+        "NSMicrophoneUsageDescription": "화상 상담을 진행하기 위해서는 마이크 권한을 허용해야 합니다.",
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true,
+          "NSAllowsArbitraryLoadsInWebContent": true
+        }
+      },
+      "config": {
+        "usesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "versionCode": 35,
+      "package": "kr.co.insunginfo.okdoc",
+      "adaptiveIcon": {
+        "foregroundImage": "./src/assets/main/main_icon2.png",
+        "backgroundColor": "#5500CC"
+      },
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "category": ["DEFAULT", "BROWSABLE"],
+          "data": {
+            "scheme": "okdoc"
+          }
+        }
+      ]
+    },
+    "web": {
+      "favicon": "./src/assets/main/main_icon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "6e4d66cc-4110-4cdb-91da-f25c046e0286"
+      }
+    },
+    "owner": "okdoc",
+    "scheme": "okdoc"
+  }
+}
