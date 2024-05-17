@@ -39,6 +39,7 @@ const initialState = {
   needPayment: false,
   needPaymentData: undefined,
   alarmDataLoading: false,
+  questionDataLoading: false,
 };
 
 //create context
@@ -223,6 +224,18 @@ const reducer = (state, action) => {
       return {
         ...state,
         alarmDataLoading: false,
+      };
+
+    case "QUESTION_DATA_UPDATING":
+      return {
+        ...state,
+        questionDataLoading: true,
+      };
+
+    case "QUESTION_DATA_UPDATED":
+      return {
+        ...state,
+        questionDataLoading: false,
       };
 
     default:

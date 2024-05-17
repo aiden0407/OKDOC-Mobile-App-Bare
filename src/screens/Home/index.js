@@ -6,10 +6,10 @@ import { useIsFocused } from "@react-navigation/native";
 import styled from "styled-components/native";
 
 //Components
-import * as Device from "expo-device";
-import { BUTTON, COLOR } from "constants/design";
+import { COLOR } from "constants/design";
 import { SYMPTOM, DEPARTMENT } from "constants/service";
 import {
+  Platform,
   Alert,
   Linking,
   Animated,
@@ -49,23 +49,23 @@ function FocusAwareStatusBar(props) {
 const bannerForTelemedicine = [
   {
     key: "1",
-    image: bannerImage4,
-  },
-  {
-    key: "2",
     image: bannerImage1,
     link: "https://insunginfo.notion.site/OK-DOC-ea3bd10f6dbf429389dfd924b29f989a?pvs=4",
   },
+  {
+    key: "2",
+    image: bannerImage2,
+    link: "https://www.notion.so/insunginfo/OK-DOC-ea3bd10f6dbf429389dfd924b29f989a?pvs=4#a2e7573a0a494cb59dd2ed4e0a051f51",
+  },
+  {
+    key: "3",
+    image: bannerImage3,
+    link: "https://www.notion.so/insunginfo/OK-DOC-ea3bd10f6dbf429389dfd924b29f989a?pvs=4#10ef9357761648758dc19354c54a8558",
+  },
   // {
-  //   key: '2',
-  //   image: bannerImage2,
-  //   link: 'https://www.notion.so/insunginfo/OK-DOC-ea3bd10f6dbf429389dfd924b29f989a?pvs=4#a2e7573a0a494cb59dd2ed4e0a051f51'
+  //   key: "4",
+  //   image: bannerImage4,
   // },
-  // {
-  //   key: '3',
-  //   image: bannerImage3,
-  //   link: 'https://www.notion.so/insunginfo/OK-DOC-ea3bd10f6dbf429389dfd924b29f989a?pvs=4#10ef9357761648758dc19354c54a8558'
-  // }
 ];
 
 const bannerForQuestions = [
@@ -75,93 +75,11 @@ const bannerForQuestions = [
   },
 ];
 
-const allQuestionExamples = [
-  {
-    question:
-      "요즘 계속해서 밤에 잠을 제대로 못 자고 있어요. 인간에게 충분한 수면이 왜 필수적인가요? 제가 잠을 제대로 못 자는 이유 중 하나가 이런 중요성을 모르기 때문일까요?",
-    answer: {
-      message:
-        "충분한 수면은 신체와 정신 건강에 필수적입니다. 수면 부족은 주의력, 기억력 및 판단력 저하, 기분 변화, 면역 체계 약화, 만성 건강 문제의 위험 증가와 관련이 있습니다. 대부분의 성인은 밤에 최소 7-8시간의 수면이 필요합니다.",
-      department: "가정의학과",
-    },
-  },
-  {
-    question:
-      "제가 최근에 당뇨병 진단을 받았어요. 식단 관리가 정말 중요하다고 들었는데, 당뇨병 환자가 식단에서 특별히 주의해야 할 것들이 무엇인지 알고 싶습니다. 혹시 제가 피해야 할 음식이나 섭취를 권장하는 음식이 있을까요?",
-    answer: {
-      department: "신장내과",
-      message:
-        "당뇨병 환자는 혈당 수치를 안정적으로 유지하기 위해 식사 계획을 잘 세워야 합니다. 고당분 식품, 가공식품, 고지방 식품을 피하고, 복합 탄수화물, 신선한 과일과 채소, 통곡물을 포함한 균형 잡힌 식단을 섭취하는 것이 좋습니다.",
-    },
-  },
-  {
-    question: "어떻게 하면 스트레스를 효과적으로 관리할 수 있나요?",
-    answer: {
-      message:
-        "스트레스 관리에는 정기적인 운동, 충분한 수면, 건강한 식습관 유지, 명상 또는 요가 같은 이완 기법이 도움이 됩니다. 중요한 것은 스트레스의 원인을 파악하고 긍정적인 대처 방법을 찾는 것입니다.",
-      department: "정신건강의학과",
-    },
-  },
-  {
-    question: "피부를 건강하게 유지하기 위한 최고의 팁은 무엇인가요?",
-    answer: {
-      message:
-        "피부 건강을 위해 매일 자외선 차단제를 사용하고, 충분한 수분을 섭취하며, 건강한 식단을 유지하세요. 또한, 정기적인 피부 청결과 보습도 중요합니다.",
-      department: "피부과",
-    },
-  },
-  {
-    question: "일상에서 눈 건강을 보호하는 방법은 무엇인가요?",
-    answer: {
-      message:
-        "장시간 전자기기 사용을 피하고, 20분마다 20초간 20피트(약 6미터) 떨어진 곳을 바라보는 20-20-20 규칙을 따르세요. 눈에 좋은 비타민을 섭취하고, 자외선 차단 안경을 착용하세요.",
-      department: "안과",
-    },
-  },
-  {
-    question: "고혈압을 관리하는 방법은 무엇인가요?",
-    answer: {
-      message:
-        "저염식 식단을 유지하고, 규칙적으로 운동하며, 스트레스를 관리하고, 정기적인 혈압 체크를 하는 것이 중요합니다. 또한, 의사의 지시에 따라 약물 치료를 병행할 수 있습니다.",
-      department: "심장내과",
-    },
-  },
-  {
-    question: "만성 피로를 극복하는 방법은 무엇인가요?",
-    answer: {
-      message:
-        "충분한 수면을 취하고, 균형 잡힌 식단을 유지하며, 정기적으로 운동하세요. 또한, 스트레스를 관리하고, 필요한 경우 전문가의도움을 요청하고 자가 치료 방법을 찾는 것이 좋습니다.",
-      department: "가정의학과",
-    },
-  },
-  {
-    question: "일상 생활에서 청력 손실을 예방하는 방법은 무엇인가요?",
-    answer: {
-      message:
-        "시끄러운 환경을 피하고, 소음이 심할 때는 귀마개를 사용하세요. 또한, 정기적인 청력 검사를 받아 조기에 문제를 발견하고 대응하는 것이 중요합니다.",
-      department: "이비인후과",
-    },
-  },
-  {
-    question: "골다공증을 예방하기 위한 생활 습관은 무엇인가요?",
-    answer: {
-      message:
-        "칼슘과 비타민 D가 풍부한 음식을 섭취하고, 정기적인 운동을 통해 뼈의 밀도를 높이세요. 흡연과 과도한 알코올 섭취는 피해야 합니다.",
-      department: "정형외과",
-    },
-  },
-  {
-    question: "아토피 피부염을 관리하는 가장 좋은 방법은 무엇인가요?",
-    answer: {
-      message:
-        "보습제를 꾸준히 사용하여 피부를 촉촉하게 유지하고, 자극적인 성분이 없는 순한 제품을 사용하세요. 필요한 경우 의사의 지시에 따라 약물 치료를 병행할 수 있습니다.",
-      department: "피부과",
-    },
-  },
-];
-
 export default function HomeScreen({ navigation }) {
-  const { dispatch: apiContextDispatch } = useContext(ApiContext);
+  const {
+    state: { allQuestions },
+    dispatch: apiContextDispatch,
+  } = useContext(ApiContext);
   const { dispatch: appContextDispatch } = useContext(AppContext);
   const [pageStatus, setPageStatus] = useState("TELEMEDICINE");
 
@@ -176,13 +94,12 @@ export default function HomeScreen({ navigation }) {
         type: "PRODUCT_LIST_UPDATE",
         productList: getProductsResponse.data.response,
       });
-      // appContextDispatch({ type: 'TELEMEDICINE_RESERVATION_PRODUCT', product: getProductsResponse.data.response[0] });
       appContextDispatch({
         type: "TELEMEDICINE_RESERVATION_PRODUCT",
-        product: getProductsResponse.data.response[3],
+        product: getProductsResponse.data.response[0],
       });
     } catch {
-      Alert.alert("네트워크 오류로 인해 정보를 불러오지 못했습니다.");
+      Alert.alert("오류", "네트워크 에러로 인해 정보를 불러오지 못했습니다.");
     }
   };
 
@@ -207,8 +124,20 @@ export default function HomeScreen({ navigation }) {
   }
 
   function handlePostQuestion() {
+    appContextDispatch({ type: "USE_QUESTION_SHORTCUT" });
     navigation.navigate("MedicalQuestionNavigation", {
       screen: "PostQuestion",
+    });
+  }
+
+  function handleQuestionDetail(data) {
+    appContextDispatch({ type: "USE_QUESTION_SHORTCUT" });
+    navigation.navigate("MedicalQuestionNavigation", {
+      screen: "QuestionDetail",
+      params: {
+        type: "ALL",
+        questionDetailData: data,
+      },
     });
   }
 
@@ -233,7 +162,9 @@ export default function HomeScreen({ navigation }) {
                 width={66}
                 height={66}
               />
-              <Text T6>{name}</Text>
+              <Text T6 mTop={-10}>
+                {name}
+              </Text>
             </>
           )}
           {category === "medicalSubject" && (
@@ -244,7 +175,9 @@ export default function HomeScreen({ navigation }) {
                 width={66}
                 height={66}
               />
-              <Text T6>{name}</Text>
+              <Text T6 mTop={-10}>
+                {name}
+              </Text>
             </>
           )}
         </>
@@ -254,31 +187,25 @@ export default function HomeScreen({ navigation }) {
 
   function Question({ data }) {
     return (
-      <QuestionBox
-        onPress={() => {
-          appContextDispatch({ type: "USE_QUESTION_SHORTCUT" });
-          navigation.navigate("MedicalQuestionNavigation", {
-            screen: "QuestionDetail",
-            params: {
-              type: "ALL",
-              questionDetailData: data,
-            },
-          });
-        }}
-      >
+      <QuestionBox onPress={() => handleQuestionDetail(data)}>
         <IconBox>
           <Image
-            source={DEPARTMENT[data.answer.department]?.ICON}
+            source={DEPARTMENT[data.clinical_department.name]?.ICON}
             width={64}
             height={64}
           />
         </IconBox>
         <Column mLeft={12}>
           <Ellipsis T5 bold numberOfLines={1} ellipsizeMode="tail">
-            {data.question}
+            {data.question.messages[data.question.messages.length - 1].content}
           </Ellipsis>
           <Ellipsis T6 numberOfLines={2} ellipsizeMode="tail">
-            {data.answer.message}
+            {
+              JSON.parse(
+                data.answer.choices[data.answer.choices.length - 1].message
+                  .content
+              ).message
+            }
           </Ellipsis>
         </Column>
       </QuestionBox>
@@ -394,14 +321,14 @@ export default function HomeScreen({ navigation }) {
                   <Icon category="medicalSubject" name="정신건강의학과" />
                 </IconsWrapper>
 
-                <FullCategoryButton
+                <FullButton
                   underlayColor={COLOR.GRAY5}
                   onPress={() => handleFullCategory()}
                 >
                   <Text T5 medium>
                     증상/상담과목 전체 보기 +
                   </Text>
-                </FullCategoryButton>
+                </FullButton>
               </ContainerCenter>
             </ContentsContainer>
           )}
@@ -431,25 +358,30 @@ export default function HomeScreen({ navigation }) {
                 <Image source={bellIcon} width={70} height={70} />
               </QuestionContainer>
 
-              <DividingLine mTop={20} />
+              <DividingLine mTop={16} />
 
               <RealtimeContainer>
                 <Text T3 bold>
                   실시간 의료 질문
                 </Text>
-                {allQuestionExamples.map((item, index) => {
-                  if (index < 2) {
-                    return <Question key={index} data={item} />;
-                  }
-                })}
-                <RealtimeButton
-                  underlayColor={COLOR.GRAY5}
-                  onPress={() => handleAllQuestions()}
-                >
-                  <Text T5 medium>
-                    의료 질문 전체 보기
-                  </Text>
-                </RealtimeButton>
+                <ContainerCenter>
+                  <QuestionContainerCenter>
+                    {allQuestions.map((item, index) => {
+                      if (index < 2) {
+                        return <Question key={index} data={item} />;
+                      }
+                    })}
+
+                    <FullButton
+                      underlayColor={COLOR.GRAY5}
+                      onPress={() => handleAllQuestions()}
+                    >
+                      <Text T5 medium>
+                        의료 질문 전체 보기
+                      </Text>
+                    </FullButton>
+                  </QuestionContainerCenter>
+                </ContainerCenter>
               </RealtimeContainer>
             </ContentsContainer2>
           )}
@@ -466,7 +398,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   constainerStyles: {
-    bottom: 23,
+    bottom: 13,
     left: 1,
   },
   dotStyles: {
@@ -478,13 +410,12 @@ const styles = StyleSheet.create({
 });
 
 const HomeContainerTop = styled(ContainerTop)`
-  padding-top: ${Device.osName === "iOS" ? "0px" : "30px"};
+  padding-top: ${Platform.OS === "ios" ? "0px" : "30px"};
 `;
 
 const CustomHeader = styled.View`
   width: 90%;
   height: 50px;
-  margin: 10px 0 10px 0;
   flex-direction: row;
   align-items: center;
   justify-content: space-evenly;
@@ -508,7 +439,7 @@ const SelectedBorderBottom = styled.View`
 
 const BannerContainer = styled.View`
   width: 300px;
-  height: 130px;
+  height: 120px;
   align-items: center;
   justify-content: center;
 `;
@@ -535,13 +466,13 @@ const IconsWrapper = styled.View`
 
 const IconButton = styled.TouchableHighlight`
   width: 96px;
-  height: 90px;
+  height: 80px;
   border-radius: 10px;
   background-color: ${COLOR.GRAY6};
   align-items: center;
 `;
 
-const FullCategoryButton = styled.TouchableHighlight`
+const FullButton = styled.TouchableHighlight`
   margin-top: 8px;
   width: 304px;
   height: 56px;
@@ -582,12 +513,16 @@ const NavigateRow = styled.TouchableOpacity`
 const RealtimeContainer = styled.View`
   flex: 1;
   width: 100%;
-  padding: 20px 24px 20px 24px;
-  justify-content: space-between;
+  padding: 16px 24px 4px 24px;
+`;
+
+const QuestionContainerCenter = styled.View`
+  max-height: 300px
+  flex: 1;
+  justify-content: space-around;
 `;
 
 const QuestionBox = styled.TouchableOpacity`
-  width: 100%;
   flex-direction: row;
   align-items: center;
 `;
@@ -601,16 +536,6 @@ const IconBox = styled.View`
   align-items: center;
 `;
 
-const RealtimeButton = styled.TouchableHighlight`
-  margin-top: 12px;
-  width: ${BUTTON.FULL.WIDTH};
-  height: ${BUTTON.FULL.HEIGHT};
-  border-radius: ${BUTTON.FULL.BORDER_RADIUS};
-  background-color: ${COLOR.GRAY6};
-  align-items: center;
-  justify-content: center;
-`;
-
 const Ellipsis = styled(Text)`
-  width: 230px;
+  width: 220px;
 `;

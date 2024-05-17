@@ -207,6 +207,8 @@ const initialState = {
   // },
   alarmData: [],
   reuseTickets: 0,
+  allQuestions: [],
+  myQuestions: [],
 };
 
 //create context
@@ -331,6 +333,18 @@ const reducer = (state, action) => {
         reuseTickets: action.reuseTickets,
       };
 
+    case "ALL_QUESTIONS":
+      return {
+        ...state,
+        allQuestions: action.allQuestions,
+      };
+
+    case "MY_QUESTIONS":
+      return {
+        ...state,
+        myQuestions: action.myQuestions,
+      };
+
     default:
       return state;
   }
@@ -340,8 +354,8 @@ const reducer = (state, action) => {
 const ApiProvider = ({ children }) => {
   const [state, dispatch] = useReducer(reducer, initialState);
   const value = { state, dispatch };
-  //console.log(`ApiContext: ${JSON.stringify(state.accountData)}`);
-  //console.log(`ApiContext: ${JSON.stringify(state.profileData[0])}`);
+  // console.log(`ApiContext: ${JSON.stringify(state.accountData)}`);
+  // console.log(`ApiContext: ${JSON.stringify(state.profileData[0])}`);
   return <ApiContext.Provider value={value}>{children}</ApiContext.Provider>;
 };
 

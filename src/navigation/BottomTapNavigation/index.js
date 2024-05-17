@@ -6,6 +6,7 @@ import useNetinfoUpdate from "hook/useNetinfoUpdate";
 import useHistoryUpdate from "hook/useHistoryUpdate";
 import useAlarmUpdate from "hook/useAlarmUpdate";
 import useReuseUpdate from "hook/useReuseUpdate";
+import useQnAUpdate from "hook/useQnAUpdate";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { dataDogFrontendError } from "api/DataDog";
 
@@ -20,7 +21,7 @@ import AlarmScreen from "screens/Alarm";
 import MyPageScreen from "screens/MyPage";
 
 //Components
-import * as Device from "expo-device";
+import { Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { COLOR } from "constants/design";
 
@@ -31,6 +32,8 @@ export default function BottomTapNavigation({ navigation }) {
   const { refresh } = useHistoryUpdate();
   const { refreshAlarm } = useAlarmUpdate();
   const { updateReuse } = useReuseUpdate();
+  const { updateAllQnA, updateMyQnA } = useQnAUpdate();
+
   const {
     state: { accountData, profileData },
     dispatch,
@@ -42,6 +45,7 @@ export default function BottomTapNavigation({ navigation }) {
   useEffect(() => {
     autoLogin();
     updateNetinfo();
+    updateAllQnA();
   }, []);
 
   useEffect(() => {
@@ -51,10 +55,25 @@ export default function BottomTapNavigation({ navigation }) {
   }, [accountData.loginToken]);
 
   useEffect(() => {
+    if (
+      (accountData?.loginToken && !accountData?.email) ||
+      (!accountData?.loginToken && accountData?.email)
+    ) {
+      dispatch({ type: "LOGOUT" });
+      try {
+        AsyncStorage.removeItem("@account_data");
+      } catch (error) {
+        dataDogFrontendError(error);
+      }
+    }
+  }, [accountData?.loginToken, accountData?.email]);
+
+  useEffect(() => {
     if (profileData?.[0]?.id) {
       refresh();
       refreshAlarm();
-      // updateReuse();
+      updateMyQnA();
+      updateReuse();
     }
   }, [profileData]);
 
@@ -127,10 +146,10 @@ export default function BottomTapNavigation({ navigation }) {
   return (
     <BottomTab.Navigator
       screenOptions={({ route }) => ({
-        tabBarStyle: Device.osName === "Android" && {
+        tabBarStyle: Platform.OS === "android" && {
           height: 60,
         },
-        tabBarLabelStyle: Device.osName === "Android" && {
+        tabBarLabelStyle: Platform.OS === "android" && {
           marginBottom: 10,
         },
         tabBarActiveTintColor: COLOR.MAIN,

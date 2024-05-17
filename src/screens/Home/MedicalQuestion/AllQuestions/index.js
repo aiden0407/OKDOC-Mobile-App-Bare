@@ -1,13 +1,15 @@
 //React
-import { useState, useContext } from "react";
+import { useEffect, useState, useContext } from "react";
 import { ApiContext } from "context/ApiContext";
+import { AppContext } from "context/AppContext";
+import useQnAUpdate from "hook/useQnAUpdate";
 import styled from "styled-components/native";
 
 //Components
-import * as Device from "expo-device";
 import { COLOR } from "constants/design";
 import { Ionicons } from "@expo/vector-icons";
-import { RefreshControl } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { Platform, RefreshControl, Alert } from "react-native";
 import {
   SafeArea,
   Container,
@@ -16,6 +18,7 @@ import {
   DividingLine,
   ContainerCenter,
   PaddingContainer,
+  Box,
 } from "components/Layout";
 import { Text } from "components/Text";
 import { Image } from "components/Image";
@@ -23,207 +26,41 @@ import { SolidButton } from "components/Button";
 import NavigationBackArrow from "components/NavigationBackArrow";
 import NeedLogin from "components/NeedLogin";
 
+//Api
+import { deleteMyQuestion, postFeedback } from "api/QnA";
+
 //Assets
 import mainIcon from "assets/main/main_icon.png";
-import noneHistoryIcon from "assets/icons/none-history.png";
-
-const allQuestionExamples = [
-  {
-    question:
-      "요즘 계속해서 밤에 잠을 제대로 못 자고 있어요. 인간에게 충분한 수면이 왜 필수적인가요? 제가 잠을 제대로 못 자는 이유 중 하나가 이런 중요성을 모르기 때문일까요?",
-    answer: {
-      message:
-        "충분한 수면은 신체와 정신 건강에 필수적입니다. 수면 부족은 주의력, 기억력 및 판단력 저하, 기분 변화, 면역 체계 약화, 만성 건강 문제의 위험 증가와 관련이 있습니다. 대부분의 성인은 밤에 최소 7-8시간의 수면이 필요합니다.",
-      department: "가정의학과",
-    },
-  },
-  {
-    question:
-      "제가 최근에 당뇨병 진단을 받았어요. 식단 관리가 정말 중요하다고 들었는데, 당뇨병 환자가 식단에서 특별히 주의해야 할 것들이 무엇인지 알고 싶습니다. 혹시 제가 피해야 할 음식이나 섭취를 권장하는 음식이 있을까요?",
-    answer: {
-      department: "신장내과",
-      message:
-        "당뇨병 환자는 혈당 수치를 안정적으로 유지하기 위해 식사 계획을 잘 세워야 합니다. 고당분 식품, 가공식품, 고지방 식품을 피하고, 복합 탄수화물, 신선한 과일과 채소, 통곡물을 포함한 균형 잡힌 식단을 섭취하는 것이 좋습니다.",
-    },
-  },
-  {
-    question: "어떻게 하면 스트레스를 효과적으로 관리할 수 있나요?",
-    answer: {
-      message:
-        "스트레스 관리에는 정기적인 운동, 충분한 수면, 건강한 식습관 유지, 명상 또는 요가 같은 이완 기법이 도움이 됩니다. 중요한 것은 스트레스의 원인을 파악하고 긍정적인 대처 방법을 찾는 것입니다.",
-      department: "정신건강의학과",
-    },
-  },
-  {
-    question: "피부를 건강하게 유지하기 위한 최고의 팁은 무엇인가요?",
-    answer: {
-      message:
-        "피부 건강을 위해 매일 자외선 차단제를 사용하고, 충분한 수분을 섭취하며, 건강한 식단을 유지하세요. 또한, 정기적인 피부 청결과 보습도 중요합니다.",
-      department: "피부과",
-    },
-  },
-  {
-    question: "일상에서 눈 건강을 보호하는 방법은 무엇인가요?",
-    answer: {
-      message:
-        "장시간 전자기기 사용을 피하고, 20분마다 20초간 20피트(약 6미터) 떨어진 곳을 바라보는 20-20-20 규칙을 따르세요. 눈에 좋은 비타민을 섭취하고, 자외선 차단 안경을 착용하세요.",
-      department: "안과",
-    },
-  },
-  {
-    question: "고혈압을 관리하는 방법은 무엇인가요?",
-    answer: {
-      message:
-        "저염식 식단을 유지하고, 규칙적으로 운동하며, 스트레스를 관리하고, 정기적인 혈압 체크를 하는 것이 중요합니다. 또한, 의사의 지시에 따라 약물 치료를 병행할 수 있습니다.",
-      department: "심장내과",
-    },
-  },
-  {
-    question: "만성 피로를 극복하는 방법은 무엇인가요?",
-    answer: {
-      message:
-        "충분한 수면을 취하고, 균형 잡힌 식단을 유지하며, 정기적으로 운동하세요. 또한, 스트레스를 관리하고, 필요한 경우 전문가의도움을 요청하고 자가 치료 방법을 찾는 것이 좋습니다.",
-      department: "가정의학과",
-    },
-  },
-  {
-    question: "일상 생활에서 청력 손실을 예방하는 방법은 무엇인가요?",
-    answer: {
-      message:
-        "시끄러운 환경을 피하고, 소음이 심할 때는 귀마개를 사용하세요. 또한, 정기적인 청력 검사를 받아 조기에 문제를 발견하고 대응하는 것이 중요합니다.",
-      department: "이비인후과",
-    },
-  },
-  {
-    question: "골다공증을 예방하기 위한 생활 습관은 무엇인가요?",
-    answer: {
-      message:
-        "칼슘과 비타민 D가 풍부한 음식을 섭취하고, 정기적인 운동을 통해 뼈의 밀도를 높이세요. 흡연과 과도한 알코올 섭취는 피해야 합니다.",
-      department: "정형외과",
-    },
-  },
-  {
-    question: "아토피 피부염을 관리하는 가장 좋은 방법은 무엇인가요?",
-    answer: {
-      message:
-        "보습제를 꾸준히 사용하여 피부를 촉촉하게 유지하고, 자극적인 성분이 없는 순한 제품을 사용하세요. 필요한 경우 의사의 지시에 따라 약물 치료를 병행할 수 있습니다.",
-      department: "피부과",
-    },
-  },
-];
-
-const myQuestionExamples = [
-  {
-    question:
-      "요즘 계속해서 밤에 잠을 제대로 못 자고 있어요. 인간에게 충분한 수면이 왜 필수적인가요? 제가 잠을 제대로 못 자는 이유 중 하나가 이런 중요성을 모르기 때문일까요?",
-    answer: {
-      message:
-        "충분한 수면은 신체와 정신 건강에 필수적입니다. 수면 부족은 주의력, 기억력 및 판단력 저하, 기분 변화, 면역 체계 약화, 만성 건강 문제의 위험 증가와 관련이 있습니다. 대부분의 성인은 밤에 최소 7-8시간의 수면이 필요합니다.",
-      department: "가정의학과",
-    },
-  },
-  {
-    question:
-      "제가 최근에 당뇨병 진단을 받았어요. 식단 관리가 정말 중요하다고 들었는데, 당뇨병 환자가 식단에서 특별히 주의해야 할 것들이 무엇인지 알고 싶습니다. 혹시 제가 피해야 할 음식이나 섭취를 권장하는 음식이 있을까요?",
-    answer: {
-      department: "신장내과",
-      message:
-        "당뇨병 환자는 혈당 수치를 안정적으로 유지하기 위해 식사 계획을 잘 세워야 합니다. 고당분 식품, 가공식품, 고지방 식품을 피하고, 복합 탄수화물, 신선한 과일과 채소, 통곡물을 포함한 균형 잡힌 식단을 섭취하는 것이 좋습니다.",
-    },
-  },
-  {
-    question: "어떻게 하면 스트레스를 효과적으로 관리할 수 있나요?",
-    answer: {
-      message:
-        "스트레스 관리에는 정기적인 운동, 충분한 수면, 건강한 식습관 유지, 명상 또는 요가 같은 이완 기법이 도움이 됩니다. 중요한 것은 스트레스의 원인을 파악하고 긍정적인 대처 방법을 찾는 것입니다.",
-      department: "정신건강의학과",
-    },
-  },
-  {
-    question: "피부를 건강하게 유지하기 위한 최고의 팁은 무엇인가요?",
-    answer: {
-      message:
-        "피부 건강을 위해 매일 자외선 차단제를 사용하고, 충분한 수분을 섭취하며, 건강한 식단을 유지하세요. 또한, 정기적인 피부 청결과 보습도 중요합니다.",
-      department: "피부과",
-    },
-  },
-  {
-    question: "일상에서 눈 건강을 보호하는 방법은 무엇인가요?",
-    answer: {
-      message:
-        "장시간 전자기기 사용을 피하고, 20분마다 20초간 20피트(약 6미터) 떨어진 곳을 바라보는 20-20-20 규칙을 따르세요. 눈에 좋은 비타민을 섭취하고, 자외선 차단 안경을 착용하세요.",
-      department: "안과",
-    },
-  },
-  {
-    question: "고혈압을 관리하는 방법은 무엇인가요?",
-    answer: {
-      message:
-        "저염식 식단을 유지하고, 규칙적으로 운동하며, 스트레스를 관리하고, 정기적인 혈압 체크를 하는 것이 중요합니다. 또한, 의사의 지시에 따라 약물 치료를 병행할 수 있습니다.",
-      department: "심장내과",
-    },
-  },
-  {
-    question: "만성 피로를 극복하는 방법은 무엇인가요?",
-    answer: {
-      message:
-        "충분한 수면을 취하고, 균형 잡힌 식단을 유지하며, 정기적으로 운동하세요. 또한, 스트레스를 관리하고, 필요한 경우 전문가의도움을 요청하고 자가 치료 방법을 찾는 것이 좋습니다.",
-      department: "가정의학과",
-    },
-  },
-  {
-    question: "일상 생활에서 청력 손실을 예방하는 방법은 무엇인가요?",
-    answer: {
-      message:
-        "시끄러운 환경을 피하고, 소음이 심할 때는 귀마개를 사용하세요. 또한, 정기적인 청력 검사를 받아 조기에 문제를 발견하고 대응하는 것이 중요합니다.",
-      department: "이비인후과",
-    },
-  },
-  {
-    question: "골다공증을 예방하기 위한 생활 습관은 무엇인가요?",
-    answer: {
-      message:
-        "칼슘과 비타민 D가 풍부한 음식을 섭취하고, 정기적인 운동을 통해 뼈의 밀도를 높이세요. 흡연과 과도한 알코올 섭취는 피해야 합니다.",
-      department: "정형외과",
-    },
-  },
-  {
-    question: "아토피 피부염을 관리하는 가장 좋은 방법은 무엇인가요?",
-    answer: {
-      message:
-        "보습제를 꾸준히 사용하여 피부를 촉촉하게 유지하고, 자극적인 성분이 없는 순한 제품을 사용하세요. 필요한 경우 의사의 지시에 따라 약물 치료를 병행할 수 있습니다.",
-      department: "피부과",
-    },
-  },
-];
+import noneHistoryColorIcon from "assets/icons/none-history-color.png";
 
 export default function AllQuestionsScreen({ navigation }) {
+  const { updateAllQnA, updateMyQnA } = useQnAUpdate();
   const {
-    state: { accountData },
+    state: { accountData, allQuestions, myQuestions },
   } = useContext(ApiContext);
+  const {
+    state: { questionDataLoading },
+  } = useContext(AppContext);
   const [pageStatus, setPageStatus] = useState("ALL");
-  const [allRefreshing, setAllRefreshing] = useState(false);
-  const [allDropdownIndex, setAllDropdownIndex] = useState();
+  const [refreshing, setRefreshing] = useState(false);
 
-  const [myRefreshing, setMyRefreshing] = useState(false);
+  const [allDropdownIndex, setAllDropdownIndex] = useState();
   const [myDropdownIndex, setMyDropdownIndex] = useState();
 
-  const [reportOpened, setReportOpened] = useState(false);
-  const [reportReasonIndex, setReportReasonIndex] = useState(0);
+  const [reportIndex, setReportIndex] = useState();
+  const [reportReason, setReportReason] = useState("WRONG");
 
-  const onAllRefresh = () => {
-    setAllRefreshing(true);
-    setTimeout(() => {
-      setAllRefreshing(false);
-    }, 1000);
+  const onRefresh = () => {
+    setRefreshing(true);
+    updateAllQnA();
+    updateMyQnA();
   };
 
-  const onMyRefresh = () => {
-    setMyRefreshing(true);
-    setTimeout(() => {
-      setMyRefreshing(false);
-    }, 1000);
-  };
+  useEffect(() => {
+    if (!questionDataLoading) {
+      setRefreshing(false);
+    }
+  }, [questionDataLoading]);
 
   function handleDetail(questionDetailData) {
     setAllDropdownIndex();
@@ -234,25 +71,86 @@ export default function AllQuestionsScreen({ navigation }) {
     });
   }
 
+  async function handleDeleteQuestion(questionDetailData) {
+    try {
+      response = await deleteMyQuestion(
+        accountData.loginToken,
+        questionDetailData.id
+      );
+      Alert.alert("삭제 완료", "해당 질문이 정상적으로 삭제되었습니다.");
+    } catch {
+      Alert.alert("오류", "질문 삭제를 실패하였습니다. 다시 시도해주세요.");
+    }
+    updateAllQnA();
+    updateMyQnA();
+  }
+
+  async function handleReport() {
+    try {
+      if (pageStatus === "ALL") {
+        await postFeedback(allQuestions[reportIndex].id, reportReason);
+      } else {
+        await postFeedback(myQuestions[reportIndex].id, reportReason);
+      }
+      setReportIndex();
+      Alert.alert("신고 완료", "해당 신고가 정상적으로 접수되었습니다.");
+    } catch (error) {
+      Alert.alert(
+        "오류",
+        "답변 신고를 실패하였습니다. 다시 시도해 주시기 바립니다."
+      );
+    }
+  }
+
   function handleLogin() {
     navigation.navigate("LoginStackNavigation");
   }
 
+  function formatDate(createdAt) {
+    const date = new Date(createdAt);
+
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    const hour = date.getHours();
+    const minute = date.getMinutes();
+
+    const formattedYear = year.toString().slice(-2);
+    const formattedMonth = ("0" + month).slice(-2);
+    const formattedDay = ("0" + day).slice(-2);
+    const formattedHour = ("0" + hour).slice(-2);
+    const formattedMinute = ("0" + minute).slice(-2);
+
+    return `${formattedYear}/${formattedMonth}/${formattedDay} ${formattedHour}:${formattedMinute}`;
+  }
+
   function Question({ questionDetailData, index }) {
     return (
-      <QuestionContainer>
+      <QuestionContainer
+        activeOpacity={1}
+        onPress={() => {
+          if (pageStatus === "ALL" && allDropdownIndex !== undefined) {
+            setAllDropdownIndex();
+          } else if (pageStatus === "MY" && myDropdownIndex !== undefined) {
+            setMyDropdownIndex();
+          } else {
+            handleDetail(questionDetailData);
+          }
+        }}
+      >
         <StyledRow mTop={30}>
           <StyledRow>
             <CategoryBox>
-              <Text T7 bold color={COLOR.MAIN}>
-                {questionDetailData.answer?.department ?? "카테고리 없음"}
+              <Text T6 bold color={COLOR.MAIN}>
+                {questionDetailData?.clinical_department?.name ??
+                  "카테고리 없음"}
               </Text>
             </CategoryBox>
             <Text T7 medium color={COLOR.GRAY2} mLeft={8}>
-              04/02 17:37
+              {formatDate(questionDetailData.createdAt)}
             </Text>
           </StyledRow>
-          <DropdownMenu
+          {/* <DropdownMenu
             activeOpacity={1}
             onPress={() => {
               if (pageStatus === "ALL") {
@@ -275,15 +173,17 @@ export default function AllQuestionsScreen({ navigation }) {
               size={20}
               color="#BBBBBB"
             />
-          </DropdownMenu>
+          </DropdownMenu> */}
         </StyledRow>
 
-        <QuestionBox
-          activeOpacity={1}
-          onPress={() => handleDetail(questionDetailData)}
-        >
-          <Ellipsis T6 bold mTop={14} numberOfLines={2} ellipsizeMode="tail">
-            Q. {questionDetailData.question}
+        <QuestionBox>
+          <Ellipsis T5 bold mTop={14} numberOfLines={2} ellipsizeMode="tail">
+            Q.{" "}
+            {
+              questionDetailData.question.messages[
+                questionDetailData.question.messages.length - 1
+              ].content
+            }
           </Ellipsis>
         </QuestionBox>
 
@@ -292,8 +192,8 @@ export default function AllQuestionsScreen({ navigation }) {
             <DropdownReport
               underlayColor={COLOR.GRAY5}
               onPress={() => {
+                setReportIndex(index);
                 setAllDropdownIndex();
-                setReportOpened(true);
               }}
             >
               <Text T6>답변 신고</Text>
@@ -306,7 +206,8 @@ export default function AllQuestionsScreen({ navigation }) {
             <DropdownMyDelete
               underlayColor={COLOR.GRAY5}
               onPress={() => {
-                setMyDropdownIndex(false);
+                setMyDropdownIndex();
+                handleDeleteQuestion(questionDetailData);
               }}
             >
               <Text T6>질문 삭제</Text>
@@ -314,8 +215,8 @@ export default function AllQuestionsScreen({ navigation }) {
             <DropdownMyReport
               underlayColor={COLOR.GRAY5}
               onPress={() => {
+                setReportIndex(index);
                 setMyDropdownIndex();
-                setReportOpened(true);
               }}
             >
               <Text T6>답변 신고</Text>
@@ -323,10 +224,7 @@ export default function AllQuestionsScreen({ navigation }) {
           </DropdownBox>
         )}
 
-        <AnswerBox
-          activeOpacity={1}
-          onPress={() => handleDetail(questionDetailData)}
-        >
+        <AnswerBox>
           <>
             <Row align>
               <Image source={mainIcon} width={25} height={25} circle />
@@ -335,7 +233,14 @@ export default function AllQuestionsScreen({ navigation }) {
               </Text>
             </Row>
             <Ellipsis T6 mTop={6} numberOfLines={2} ellipsizeMode="tail">
-              A. {questionDetailData.answer.message}
+              A.{" "}
+              {
+                JSON.parse(
+                  questionDetailData.answer.choices[
+                    questionDetailData.answer.choices.length - 1
+                  ].message.content
+                ).message
+              }
             </Ellipsis>
           </>
         </AnswerBox>
@@ -348,7 +253,7 @@ export default function AllQuestionsScreen({ navigation }) {
   return (
     <>
       <SafeArea>
-        <Container>
+        <ContainerTopPadding>
           <CustomHeader>
             <BackArrowWrapper>
               <NavigationBackArrow action={() => navigation.goBack()} />
@@ -390,38 +295,58 @@ export default function AllQuestionsScreen({ navigation }) {
           </CustomHeader>
 
           {pageStatus === "ALL" && (
-            <TouchableContainer
-              activeOpacity={1}
-              onPress={() => {
-                if (allDropdownIndex !== undefined) {
-                  setAllDropdownIndex();
-                }
-              }}
-            >
-              <ScrollView
-                refreshControl={
-                  <RefreshControl
-                    refreshing={allRefreshing}
-                    onRefresh={onAllRefresh}
-                    tintColor={COLOR.MAIN}
-                    progressViewOffset={20}
+            <>
+              {allQuestions.length > 0 ? (
+                <TouchableContainer
+                  activeOpacity={1}
+                  onPress={() => {
+                    if (allDropdownIndex !== undefined) {
+                      setAllDropdownIndex();
+                    }
+                  }}
+                >
+                  <ScrollView
+                    refreshControl={
+                      <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        tintColor={COLOR.MAIN}
+                        progressViewOffset={20}
+                      />
+                    }
+                  >
+                    {allQuestions.map((item, index) => (
+                      <Question
+                        key={index}
+                        questionDetailData={item}
+                        index={index}
+                      />
+                    ))}
+                    <Box height={120} />
+                  </ScrollView>
+                </TouchableContainer>
+              ) : (
+                <ContainerCenter>
+                  <Image
+                    source={noneHistoryColorIcon}
+                    width={65}
+                    height={65}
+                    mTop={-50}
                   />
-                }
-              >
-                {allQuestionExamples.map((item, index) => (
-                  <Question
-                    key={index}
-                    questionDetailData={item}
-                    index={index}
-                  />
-                ))}
-              </ScrollView>
-            </TouchableContainer>
+                  <Text T3 bold mTop={24}>
+                    아직 질문 내역이 없어요
+                  </Text>
+                  <Text T6 medium center color={COLOR.GRAY1} mTop={12}>
+                    오케이닥 AI에게 의료 상담 해보세요
+                  </Text>
+                </ContainerCenter>
+              )}
+            </>
           )}
 
           {pageStatus === "MY" && accountData.loginToken && (
             <>
-              {myQuestionExamples.length > 0 ? (
+              {myQuestions.length > 0 ? (
                 <TouchableContainer
                   activeOpacity={1}
                   onPress={() => {
@@ -433,32 +358,36 @@ export default function AllQuestionsScreen({ navigation }) {
                   <ScrollView
                     refreshControl={
                       <RefreshControl
-                        refreshing={myRefreshing}
-                        onRefresh={onMyRefresh}
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
                         tintColor={COLOR.MAIN}
                         progressViewOffset={20}
                       />
                     }
                   >
-                    {myQuestionExamples.map((item, index) => (
+                    {myQuestions.map((item, index) => (
                       <Question
                         key={index}
                         questionDetailData={item}
                         index={index}
                       />
                     ))}
+                    <Box height={120} />
                   </ScrollView>
                 </TouchableContainer>
               ) : (
                 <ContainerCenter>
                   <Image
-                    source={noneHistoryIcon}
+                    source={noneHistoryColorIcon}
                     width={65}
                     height={65}
                     mTop={-50}
                   />
-                  <Text T6 bold color={COLOR.GRAY3} mTop={16}>
-                    아직 질문하신 내용이 없어요
+                  <Text T3 bold mTop={24}>
+                    아직 질문 내역이 없어요
+                  </Text>
+                  <Text T6 medium center color={COLOR.GRAY1} mTop={12}>
+                    오케이닥 AI에게 의료 상담 해보세요
                   </Text>
                 </ContainerCenter>
               )}
@@ -470,11 +399,32 @@ export default function AllQuestionsScreen({ navigation }) {
               <NeedLogin mTop={-80} action={() => handleLogin()} />
             </ContainerCenter>
           )}
-        </Container>
+        </ContainerTopPadding>
+
+        {(pageStatus === "ALL" || accountData.loginToken) && (
+          <LinearGradient
+            colors={["rgba(255,255,255,0)", "#FFFFFF", "#FFFFFF", "#FFFFFF"]}
+            style={{
+              width: "100%",
+              marginBottom: 0,
+              padding: 20,
+              paddingTop: 0,
+              position: "absolute",
+              bottom: 0,
+            }}
+          >
+            <SolidButton
+              mTop={60}
+              mBottom={20}
+              text="질문하기"
+              action={() => navigation.navigate("PostQuestion")}
+            />
+          </LinearGradient>
+        )}
       </SafeArea>
 
-      {reportOpened && (
-        <BottomSheetBackground onPress={() => setReportOpened(false)}>
+      {reportIndex !== undefined && (
+        <BottomSheetBackground onPress={() => setReportIndex()}>
           <BottomSheetContainer>
             <Text T5 bold>
               신고 사유
@@ -484,14 +434,14 @@ export default function AllQuestionsScreen({ navigation }) {
               <LargePadding>
                 <TouchableRow
                   activeOpacity={1}
-                  onPress={() => setReportReasonIndex(0)}
+                  onPress={() => setReportReason("WRONG")}
                 >
                   <CheckBox>
                     <Ionicons
                       name="checkmark-sharp"
                       size={16}
                       color={
-                        reportReasonIndex === 0 ? "#FFFFFF" : "transparent"
+                        reportReason === "WRONG" ? "#FFFFFF" : "transparent"
                       }
                     />
                   </CheckBox>
@@ -501,14 +451,14 @@ export default function AllQuestionsScreen({ navigation }) {
                 </TouchableRow>
                 <TouchableRow
                   activeOpacity={1}
-                  onPress={() => setReportReasonIndex(1)}
+                  onPress={() => setReportReason("WARN")}
                 >
                   <CheckBox>
                     <Ionicons
                       name="checkmark-sharp"
                       size={16}
                       color={
-                        reportReasonIndex === 1 ? "#FFFFFF" : "transparent"
+                        reportReason === "WARN" ? "#FFFFFF" : "transparent"
                       }
                     />
                   </CheckBox>
@@ -518,15 +468,13 @@ export default function AllQuestionsScreen({ navigation }) {
                 </TouchableRow>
                 <TouchableRow
                   activeOpacity={1}
-                  onPress={() => setReportReasonIndex(2)}
+                  onPress={() => setReportReason("ETC")}
                 >
                   <CheckBox>
                     <Ionicons
                       name="checkmark-sharp"
                       size={16}
-                      color={
-                        reportReasonIndex === 2 ? "#FFFFFF" : "transparent"
-                      }
+                      color={reportReason === "ETC" ? "#FFFFFF" : "transparent"}
                     />
                   </CheckBox>
                   <Text T5 medium mLeft={16}>
@@ -535,7 +483,11 @@ export default function AllQuestionsScreen({ navigation }) {
                 </TouchableRow>
               </LargePadding>
 
-              <SolidButton mTop={33} text="신고 하기" action={() => {}} />
+              <SolidButton
+                mTop={33}
+                text="신고 하기"
+                action={() => handleReport()}
+              />
             </PaddingContainer>
           </BottomSheetContainer>
         </BottomSheetBackground>
@@ -544,10 +496,14 @@ export default function AllQuestionsScreen({ navigation }) {
   );
 }
 
+const ContainerTopPadding = styled(Container)`
+  padding-top: ${Platform.OS === "ios" ? "0px" : "40px"};
+`;
+
 const CustomHeader = styled.View`
   width: 100%;
-  height: ${Device.osName === "Android" ? "90px" : "50px"};
-  padding: ${Device.osName === "Android" ? "40px 24px 0px 24px" : "0 24px"};
+  height: 50px;
+  padding: 0 24px;
   flex-direction: row;
   align-items: center;
   justify-content: space-evenly;
@@ -557,7 +513,7 @@ const CustomHeader = styled.View`
 
 const BackArrowWrapper = styled.View`
   position: absolute;
-  top: ${Device.osName === "Android" ? "44px" : "10px"};
+  top: 10px;
   left: 16px;
 `;
 
@@ -580,7 +536,7 @@ const TouchableContainer = styled.TouchableOpacity`
   flex: 1;
 `;
 
-const QuestionContainer = styled.View`
+const QuestionContainer = styled.TouchableOpacity`
   position: relative;
 `;
 
@@ -626,7 +582,7 @@ const DropdownReport = styled.TouchableHighlight`
   border-radius: 5px;
 `;
 
-const QuestionBox = styled.TouchableOpacity`
+const QuestionBox = styled.View`
   width: 100%;
   padding: 0 6px;
 `;
@@ -635,7 +591,7 @@ const Ellipsis = styled(Text)`
   width: 100%;
 `;
 
-const AnswerBox = styled.TouchableOpacity`
+const AnswerBox = styled.View`
   margin-top: 20px;
   padding: 16px 12px;
   background-color: ${COLOR.GRAY6};

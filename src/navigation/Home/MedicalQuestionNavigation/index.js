@@ -20,7 +20,6 @@ export default function MedicalQuestionNavigation({ navigation }) {
   } = useContext(AppContext);
 
   function handleReservationBack() {
-    console.log("isQuestionShorcutUsed", isQuestionShorcutUsed);
     if (isQuestionShorcutUsed) {
       dispatch({ type: "DELETE_QUESTION_SHORTCUT" });
       navigation.goBack();
@@ -36,7 +35,10 @@ export default function MedicalQuestionNavigation({ navigation }) {
           name="PostQuestion"
           component={PostQuestionScreen}
           options={{
-            headerShown: false,
+            title: "질문 작성",
+            headerLeft: () => (
+              <NavigationBackArrow action={() => handleReservationBack()} />
+            ),
           }}
         />
         <Stack.Screen
