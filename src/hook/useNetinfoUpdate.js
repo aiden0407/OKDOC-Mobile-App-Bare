@@ -33,6 +33,7 @@ export default function useNetinfoUpdate() {
         })
       );
     } catch (error) {
+      await AsyncStorage.setItem("@net_information", {});
       dataDogFrontendError(error);
     }
   };

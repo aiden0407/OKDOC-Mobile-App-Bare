@@ -1,52 +1,84 @@
 //React
-import { useState, useContext } from 'react';
-import { AppContext } from 'context/AppContext';
-import { ApiContext } from 'context/ApiContext';
-import styled from 'styled-components/native';
+import { useState, useContext } from "react";
+import { AppContext } from "context/AppContext";
+import { ApiContext } from "context/ApiContext";
+import useTestAccount from "hook/useTestAccount";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import styled from "styled-components/native";
+import { dataDogFrontendError } from "api/DataDog";
 
 //Components
-import * as Device from 'expo-device';
-import { COLOR } from 'constants/design';
-import { LinearGradient } from 'expo-linear-gradient'
-import { SafeArea, ScrollView, Row, DividingLine, Box } from 'components/Layout';
-import { Text } from 'components/Text';
-import { Image } from 'components/Image';
-import { SolidButton } from 'components/Button';
+import { COLOR } from "constants/design";
+import { Platform, Alert } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import {
+  SafeArea,
+  ScrollView,
+  Row,
+  DividingLine,
+  Box,
+} from "components/Layout";
+import { Text } from "components/Text";
+import { Image } from "components/Image";
+import { SolidButton } from "components/Button";
 
 //Assets
-import starEmpty from 'assets/icons/star-empty.png';
-import starHalf from 'assets/icons/star-half.png';
-import starFull from 'assets/icons/star-full.png';
+import starEmpty from "assets/icons/star-empty.png";
+import starHalf from "assets/icons/star-half.png";
+import starFull from "assets/icons/star-full.png";
 
 export default function DoctorProfileScreen({ navigation }) {
-
-  const { state: { telemedicineReservationStatus }, dispatch } = useContext(AppContext);
-  const { state: { accountData, profileData } } = useContext(ApiContext);
-  const [informationCategory, setInformationCategory] = useState('profile');
-  const doctorInfo = telemedicineReservationStatus.doctorInfo
+  const {
+    state: { telemedicineReservationStatus },
+    dispatch,
+  } = useContext(AppContext);
+  const {
+    state: { accountData, profileData, reuseTickets },
+  } = useContext(ApiContext);
+  const [informationCategory, setInformationCategory] = useState("profile");
+  const doctorInfo = telemedicineReservationStatus.doctorInfo;
 
   const title = doctorInfo?.selfIntrodectionTitle;
   const text = doctorInfo?.selfIntrodectionDetale;
 
-  function handleApplyReservation() {
+  async function handleApplyReservation() {
     if (accountData.loginToken) {
-      if(profileData[0].id){
-        dispatch({ type: 'TELEMEDICINE_RESERVATION_PROFILE', profileType: 'my', profileInfo: profileData[0] });
-        navigation.navigate('ProfileDetail');
+      let netInfo;
+      try {
+        const jsonValue = await AsyncStorage.getItem("@net_information");
+        if (jsonValue !== null) {
+          netInfo = JSON.parse(jsonValue);
+        }
+      } catch (error) {
+        dataDogFrontendError(error);
+      }
+
+      if (
+        netInfo?.geoip?.country?.iso_code === "KR" &&
+        !useTestAccount(accountData.email)
+      ) {
+        Alert.alert(
+          "안내",
+          "대한한국에 위치해 계실 경우 서비스 예약 및 이용이 불가능합니다."
+        );
       } else {
-        // 프로필 등록 (1.1.3 버전 이후로 프로필 없는 계정 존재하지 않게 됨)
-        // navigation.navigate('PassportInformation');
+        dispatch({
+          type: "TELEMEDICINE_RESERVATION_PROFILE",
+          profileType: "my",
+          profileInfo: profileData[0],
+        });
+        navigation.navigate("ProfileDetail");
       }
     } else {
-      navigation.navigate('NeedLoginNavigation', {
-        screen: 'NeedLogin',
-        params: { headerTitle: '비대면 상담실' },
+      navigation.navigate("NeedLoginNavigation", {
+        screen: "NeedLogin",
+        params: { headerTitle: "비대면 상담실" },
       });
     }
   }
 
   function convertToHashtags(dataArray) {
-    const hashtags = dataArray.map(tag => `#${tag}`).join(' ');
+    const hashtags = dataArray.map((tag) => `#${tag}`).join(" ");
     return hashtags;
   }
 
@@ -114,31 +146,50 @@ export default function DoctorProfileScreen({ navigation }) {
 
       {/* <ScrollView showsVerticalScrollIndicator={false} paddingHorizontal={20} paddingTop={80}> */}
       <ScrollView paddingHorizontal={20}>
-        {informationCategory === 'profile' && (
+        {informationCategory === "profile" && (
           <>
             <Row align mTop={36}>
-              <Image source={{ uri: doctorInfo.image }} width={66} height={66} circle />
+              <Image
+                source={{ uri: doctorInfo?.image }}
+                width={66}
+                height={66}
+                circle
+              />
               <DoctorColumn>
-                <Text T4 bold>{doctorInfo.name} 교수</Text>
-                <Text T7 medium color={COLOR.GRAY1}>{doctorInfo.hospital} / {doctorInfo.subject}</Text>
-                <StyledText T7 color={COLOR.GRAY1} >{convertToHashtags(doctorInfo.strength)}</StyledText>
+                <Text T4 bold>
+                  {doctorInfo.name} 교수
+                </Text>
+                <Text T7 medium color={COLOR.GRAY1}>
+                  {doctorInfo.hospital} / {doctorInfo.subject}
+                </Text>
+                <StyledText T7 color={COLOR.GRAY1}>
+                  {convertToHashtags(doctorInfo.strength)}
+                </StyledText>
               </DoctorColumn>
             </Row>
 
             <DividingLine thin mTop={24} />
 
-            <Text T4 bold mTop={24} mBottom={3}>학력 및 이력</Text>
-            {doctorInfo?.field?.map((item, index) =>
+            <Text T4 bold mTop={24} mBottom={3}>
+              학력 및 이력
+            </Text>
+            {doctorInfo?.field?.map((item, index) => (
               <Row align mTop={9} key={`date${index}`}>
                 <BulletPoint />
-                <Text T6 color={COLOR.GRAY1}>{item}</Text>
+                <Text T6 color={COLOR.GRAY1}>
+                  {item}
+                </Text>
               </Row>
-            )}
+            ))}
 
             <DividingLine thin mTop={24} />
 
-            <Text T4 bold mTop={36}>{title}</Text>
-            <Text T6 mTop={18} mBottom={60}>{text}</Text>
+            <Text T4 bold mTop={36}>
+              {title}
+            </Text>
+            <Text T6 mTop={18} mBottom={60}>
+              {text}
+            </Text>
           </>
         )}
         {/* {informationCategory === 'review' && (
@@ -169,18 +220,22 @@ export default function DoctorProfileScreen({ navigation }) {
       </ScrollView>
 
       <LinearGradient
-        colors={['rgba(255,255,255,0)', '#FFFFFF', '#FFFFFF', '#FFFFFF']}
+        colors={["rgba(255,255,255,0)", "#FFFFFF", "#FFFFFF", "#FFFFFF"]}
         style={{
-          width: '100%',
-          marginBottom: Device.osName==='Android' ? 0 : 34,
+          width: "100%",
+          marginBottom: Platform.OS === "android" ? 0 : 34,
           padding: 20,
           paddingTop: 70,
-          position: 'absolute',
-          bottom: 0
+          position: "absolute",
+          bottom: 0,
         }}
       >
         <SolidButton
-          text="상담 예약 신청"
+          text={
+            reuseTickets > 0
+              ? `상담 예약 신청 (잔여 이용권: ${reuseTickets}개)`
+              : "상담 예약 신청"
+          }
           action={() => handleApplyReservation()}
         />
       </LinearGradient>
