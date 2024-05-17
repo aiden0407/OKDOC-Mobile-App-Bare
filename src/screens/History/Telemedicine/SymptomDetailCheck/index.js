@@ -11,7 +11,7 @@ import { dataDogFrontendError } from "api/DataDog";
 
 //Components
 import { COLOR } from "constants/design";
-import { Alert } from "react-native";
+import { Alert, Linking } from "react-native";
 import {
   SafeArea,
   KeyboardAvoiding,
@@ -129,7 +129,10 @@ export default function SymptomDetailCheckScreen({ navigation, route }) {
 
       // if (deviceLocale?.regionCode === 'KR' && deviceCalendar?.timeZone === 'Asia/Seoul') {
       if (netInfo?.geoip?.country?.iso_code === "KR") {
-        Alert.alert("대한민국에서는 해당 서비스를 이용하실 수 없습니다.");
+        Alert.alert(
+          "안내",
+          "대한민국에서는 해당 서비스를 이용하실 수 없습니다."
+        );
       } else {
         Alert.alert(
           "상담실에 입장하시겠습니까?",

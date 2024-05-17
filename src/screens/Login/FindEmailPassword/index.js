@@ -3,9 +3,8 @@ import { useState, useRef } from "react";
 import styled from "styled-components/native";
 
 //Components
-import * as Device from "expo-device";
 import { COLOR, TYPOGRAPHY } from "constants/design";
-import { Alert, Keyboard } from "react-native";
+import { Platform, Alert, Keyboard } from "react-native";
 import {
   SafeArea,
   KeyboardAvoiding,
@@ -142,9 +141,9 @@ export default function FindEmailPasswordScreen({ navigation }) {
       setIsFindEmailSubmitted(true);
     } catch (error) {
       if (error?.response?.data.statusCode === 404) {
-        Alert.alert("해당 정보로 등록된 유저가 존재하지 않습니다.");
+        Alert.alert("안내", "해당 정보로 등록된 유저가 존재하지 않습니다.");
       } else {
-        Alert.alert("네트워크 오류로 인해 정보를 불러오지 못했습니다.");
+        Alert.alert("오류", "네트워크 에러로 인해 정보를 불러오지 못했습니다.");
       }
     }
   };
@@ -174,13 +173,14 @@ export default function FindEmailPasswordScreen({ navigation }) {
           Alert.alert("오류", "다시 시도해 주시기 바랍니다.");
         }
       } else {
-        Alert.alert("해당 정보로 등록된 유저가 존재하지 않습니다.");
+        Alert.alert("안내", "해당 정보로 등록된 유저가 존재하지 않습니다.");
       }
     } catch (error) {
       if (error?.response?.data.statusCode === 404) {
-        Alert.alert("해당 정보로 등록된 유저가 존재하지 않습니다.");
+        Alert.alert("안내", "해당 정보로 등록된 유저가 존재하지 않습니다.");
       } else {
         Alert.alert(
+          "오류",
           Array.isArray(error?.response?.data.message)
             ? error?.response?.data.message[0]
             : error?.response?.data.message
@@ -193,7 +193,7 @@ export default function FindEmailPasswordScreen({ navigation }) {
     try {
       const emailCheckOpenResponse = await emailCheckOpen(findPasswordEmail);
       setVerifiedToken(emailCheckOpenResponse.data.response.verified_token);
-      Alert.alert("해당 이메일로 인증번호가 재전송 되었습니다.");
+      Alert.alert("안내", "해당 이메일로 인증번호가 재전송 되었습니다.");
     } catch {
       Alert.alert("오류", "다시 시도해 주시기 바랍니다.");
     }
@@ -214,7 +214,7 @@ export default function FindEmailPasswordScreen({ navigation }) {
         },
       ]);
     } catch {
-      Alert.alert("인증번호가 일치하지 않습니다.");
+      Alert.alert("오류", "인증번호가 일치하지 않습니다.");
     }
   };
 
@@ -267,7 +267,7 @@ export default function FindEmailPasswordScreen({ navigation }) {
     <>
       <SafeArea>
         <KeyboardAvoiding>
-          <Container>
+          <ContainerTopPadding>
             <CustomHeader>
               <BackArrowWrapper>
                 <NavigationBackArrow action={() => handleGoBackToLogin()} />
@@ -491,7 +491,7 @@ export default function FindEmailPasswordScreen({ navigation }) {
                         style={{
                           position: "absolute",
                           right: 16,
-                          top: Device.osName === "Android" ? 22 : 16,
+                          top: Platform.OS === "android" ? 22 : 16,
                           zIndex: 1,
                         }}
                       >
@@ -559,7 +559,7 @@ export default function FindEmailPasswordScreen({ navigation }) {
                           color={COLOR.GRAY1}
                           style={{
                             position: "absolute",
-                            top: Device.osName === "Android" ? 32 : 27,
+                            top: Platform.OS === "android" ? 32 : 27,
                             left: 98,
                           }}
                         >
@@ -604,7 +604,7 @@ export default function FindEmailPasswordScreen({ navigation }) {
                   />
                 </Container>
               )}
-          </Container>
+          </ContainerTopPadding>
         </KeyboardAvoiding>
       </SafeArea>
 
@@ -629,10 +629,14 @@ export default function FindEmailPasswordScreen({ navigation }) {
   );
 }
 
+const ContainerTopPadding = styled(Container)`
+  padding-top: ${Platform.OS === "android" ? "40px" : "0px"};
+`;
+
 const CustomHeader = styled.View`
   width: 100%;
-  height: ${Device.osName === "Android" ? "90px" : "50px"};
-  padding: ${Device.osName === "Android" ? "40px 24px 0px 24px" : "0 24px"};
+  height: 50px;
+  padding: 0 24px;
   flex-direction: row;
   align-items: center;
   justify-content: space-evenly;
@@ -642,7 +646,7 @@ const CustomHeader = styled.View`
 
 const BackArrowWrapper = styled.View`
   position: absolute;
-  top: ${Device.osName === "Android" ? "44px" : "10px"};
+  top: 10px;
   left: 16px;
 `;
 

@@ -5,9 +5,8 @@ import styled from "styled-components/native";
 import useTestAccount from "hook/useTestAccount";
 
 //Components
-import * as Device from "expo-device";
 import { COLOR, TYPOGRAPHY } from "constants/design";
-import { Alert, ActivityIndicator } from "react-native";
+import { Platform, Alert, ActivityIndicator } from "react-native";
 import { SafeArea, KeyboardAvoiding, Container } from "components/Layout";
 import { Text } from "components/Text";
 import { SolidButton } from "components/Button";
@@ -57,7 +56,7 @@ export default function AppleEmailScreen({ navigation }) {
       } else {
         Alert.alert(
           "인증요청 실패",
-          "네트워크 오류로 인해 인증번호 발송을 실패하였습니다. 다시 시도해 주시기 바랍니다."
+          "네트워크 에러로 인해 인증번호 발송을 실패하였습니다. 다시 시도해 주시기 바랍니다."
         );
       }
     }
@@ -69,7 +68,7 @@ export default function AppleEmailScreen({ navigation }) {
       setVerifiedToken(emailCheckOpenResponse.data.response.verified_token);
       setIsEmailSent(true);
       setLoading(false);
-      Alert.alert("해당 이메일 주소로\n인증번호가 전송되었습니다.");
+      Alert.alert("안내", "해당 이메일 주소로\n인증번호가 전송되었습니다.");
     } catch (error) {
       setLoading(false);
       if (error?.response?.data.statusCode === 409) {
@@ -80,7 +79,7 @@ export default function AppleEmailScreen({ navigation }) {
       } else {
         Alert.alert(
           "인증요청 실패",
-          "네트워크 오류로 인해 인증번호 발송을 실패하였습니다. 다시 시도해 주시기 바랍니다."
+          "네트워크 에러로 인해 인증번호 발송을 실패하였습니다. 다시 시도해 주시기 바랍니다."
         );
       }
     }
@@ -92,7 +91,7 @@ export default function AppleEmailScreen({ navigation }) {
       await emailCheckClose(verifiedToken, email, certificationNumber);
       setIsEmailCertificated(true);
       setLoading(false);
-      Alert.alert("이메일이 인증되었습니다.");
+      Alert.alert("안내", "이메일이 인증되었습니다.");
     } catch {
       setLoading(false);
       Alert.alert(
@@ -151,7 +150,7 @@ export default function AppleEmailScreen({ navigation }) {
                   style={{
                     position: "absolute",
                     right: 4,
-                    top: Device.osName === "Android" ? 21 : 13,
+                    top: Platform.OS === "android" ? 21 : 13,
                     zIndex: 1,
                   }}
                 >
@@ -188,7 +187,7 @@ export default function AppleEmailScreen({ navigation }) {
                   style={{
                     position: "absolute",
                     right: 4,
-                    top: Device.osName === "Android" ? 22 : 14,
+                    top: Platform.OS === "android" ? 22 : 14,
                     zIndex: 1,
                   }}
                 >

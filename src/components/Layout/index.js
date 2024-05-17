@@ -1,17 +1,17 @@
 //Styled Components
-import styled from "styled-components/native";
+import styled from 'styled-components/native';
 
 //Components
-import { COLOR } from "constants/design";
+import { COLOR } from 'constants/design';
 import {
   KeyboardAvoidingView,
   TouchableWithoutFeedback,
   Keyboard,
-} from "react-native";
+} from 'react-native';
 
 export function KeyboardAvoiding({ children }) {
   return (
-    <KeyboardAvoidingView behavior="height" style={{ flex: 1 }}>
+    <KeyboardAvoidingView behavior="height" style={{flex:1}}>
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         {children}
       </TouchableWithoutFeedback>
@@ -21,12 +21,12 @@ export function KeyboardAvoiding({ children }) {
 
 export const StatusBarArea = styled.SafeAreaView`
   flex: 0;
-  background-color: ${(props) => props.backgroundColor ?? "#FFFFFF"};
+  background-color: ${(props) => props.backgroundColor ?? '#FFFFFF'};
 `;
 
 export const SafeArea = styled.SafeAreaView`
   flex: 1;
-  background-color: ${(props) => props.backgroundColor ?? "#FFFFFF"};
+  background-color: ${(props) => props.backgroundColor ?? '#FFFFFF'};
 `;
 
 export const Container = styled.View`
@@ -59,10 +59,11 @@ export const Row = styled.View`
   ${(props) => props.mBottom && `margin-bottom: ${props.mBottom}px;`}
   ${(props) => props.mLeft && `margin-left: ${props.mLeft}px;`}
   flex-direction: row;
-  ${(props) => props.align && "align-items: center"}
+  ${(props) => props.align && 'align-items: center'}
 `;
 
-export const ScrollView = styled.ScrollView``;
+export const ScrollView = styled.ScrollView`
+`;
 
 export const DividingLine = styled.View`
   ${(props) => props.mTop && `margin-top: ${props.mTop}px;`}

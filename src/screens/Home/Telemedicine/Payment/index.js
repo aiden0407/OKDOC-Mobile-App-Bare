@@ -7,9 +7,8 @@ import * as Linking from "expo-linking";
 import styled from "styled-components/native";
 
 //Components
-import * as Device from "expo-device";
 import { SafeArea } from "components/Layout";
-import { Alert } from "react-native";
+import { Platform, Alert } from "react-native";
 import { WebView } from "react-native-webview";
 import { Text } from "components/Text";
 
@@ -41,9 +40,9 @@ const PaymentScreen = ({ navigation }) => {
 
   useEffect(() => {
     navigation.setOptions({
-      headerShown: Device.osName === "Android" ? true : canGoBack,
+      headerShown: Platform.OS === "android" ? true : canGoBack,
       headerRight: () => {
-        if (Device.osName === "Android") {
+        if (Platform.OS === "android") {
           if (canGoBack) {
             return (
               <EditButton
@@ -151,7 +150,7 @@ const PaymentScreen = ({ navigation }) => {
         source={{ html: htmlContent }}
         originWhitelist={["*"]}
         onNavigationStateChange={(navState) => {
-          if (Device.osName === "Android") {
+          if (Platform.OS === "android") {
             if (
               navState.url.includes(
                 "https://ksmobile.inicis.com/smart/payment/"

@@ -7,9 +7,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { dataDogFrontendError } from "api/DataDog";
 
 //Components
-import * as Device from "expo-device";
 import { COLOR, BUTTON, INPUT_BOX } from "constants/design";
-import { Alert, Keyboard } from "react-native";
+import { Platform, Alert, Keyboard } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker, {
   DateTimePickerAndroid,
@@ -157,12 +156,14 @@ export default function BirthInformationScreen({ navigation }) {
         } catch (error) {
           if (error?.response?.data) {
             Alert.alert(
+              "오류",
               Array.isArray(error?.response?.data.message)
                 ? error?.response?.data.message[0]
                 : error?.response?.data.message
             );
           } else {
             Alert.alert(
+              "오류",
               "계정 생성에 실패하였습니다. 고객센터를 통해 문의해주시기 바랍니다."
             );
           }
@@ -170,12 +171,14 @@ export default function BirthInformationScreen({ navigation }) {
       } else {
         if (error?.response?.data) {
           Alert.alert(
+            "오류",
             Array.isArray(error?.response?.data.message)
               ? error?.response?.data.message[0]
               : error?.response?.data.message
           );
         } else {
           Alert.alert(
+            "오류",
             "계정 생성에 실패하였습니다. 고객센터를 통해 문의해주시기 바랍니다."
           );
         }
@@ -252,12 +255,14 @@ export default function BirthInformationScreen({ navigation }) {
           // 프로필 생성 후 회원탈퇴 성공 => 다시 시도 요청
           if (error?.response?.data) {
             Alert.alert(
+              "오류",
               Array.isArray(error?.response?.data.message)
                 ? error?.response?.data.message[0]
                 : error?.response?.data.message
             );
           } else {
             Alert.alert(
+              "오류",
               "계정 생성에 실패하였습니다. 고객센터를 통해 문의해주시기 바랍니다."
             );
           }
@@ -266,12 +271,14 @@ export default function BirthInformationScreen({ navigation }) {
         // 회원 탈퇴 실패
         if (error?.response?.data) {
           Alert.alert(
+            "오류",
             Array.isArray(error?.response?.data.message)
               ? error?.response?.data.message[0]
               : error?.response?.data.message
           );
         } else {
           Alert.alert(
+            "오류",
             "계정 생성에 실패하였습니다. 고객센터를 통해 문의해주시기 바랍니다."
           );
         }
@@ -306,7 +313,7 @@ export default function BirthInformationScreen({ navigation }) {
                 <DateTimePickerOpenButton
                   onPress={() => {
                     Keyboard.dismiss();
-                    if (Device.osName === "Android") {
+                    if (Platform.OS === "android") {
                       showBirthSelector();
                     } else {
                       setIsBirthPickerShow(true);

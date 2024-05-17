@@ -258,9 +258,13 @@ export default function ReservationScreen({ navigation, route }) {
     } catch (error) {
       if (error?.data?.statusCode === 404) {
         // 해당 진료과 소속 의사가 존재하지 않는 경우
+        apiContextDispatch({
+          type: "BOOKABLE_DATA_UPDATE",
+          bookableData: [],
+        });
         setIsLoading(false);
       } else {
-        Alert.alert("네트워크 오류로 인해 정보를 불러오지 못했습니다.");
+        Alert.alert("오류", "네트워크 에러로 인해 정보를 불러오지 못했습니다.");
       }
     }
   };

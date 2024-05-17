@@ -83,7 +83,10 @@ export default function RegisterCompleteScreen({ navigation, route }) {
       const loginToken = createLocalAccountResponse.data.response.accessToken;
       initPatient(loginToken);
     } catch {
-      Alert.alert("계정 생성에 실패하였습니다. 다시 시도해 주시기 바랍니다.");
+      Alert.alert(
+        "오류",
+        "계정 생성에 실패하였습니다. 다시 시도해 주시기 바랍니다."
+      );
     }
   };
 

@@ -41,7 +41,7 @@ export default function CategoryScreen({ navigation }) {
       });
       setdepartmentsData(departmentList);
     } catch {
-      Alert.alert("네트워크 오류로 인해 정보를 불러오지 못했습니다.");
+      Alert.alert("오류", "네트워크 에러로 인해 정보를 불러오지 못했습니다.");
     }
   };
 

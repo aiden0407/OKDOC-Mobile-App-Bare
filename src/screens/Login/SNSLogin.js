@@ -16,7 +16,7 @@ import * as Google from "expo-auth-session/providers/google";
 
 //Components
 import { COLOR } from "constants/design";
-import { Alert, StyleSheet } from "react-native";
+import { Alert, StyleSheet, Linking } from "react-native";
 import {
   SafeArea,
   KeyboardAvoiding,
@@ -121,8 +121,7 @@ export default function LoginPage({ navigation }) {
         }
       );
 
-      // RCTFatalException: Unhandled JS Exception: ReferenceError: Can't find variable: user 에러 발생
-      const user = response.json();
+      const user = await response.json();
 
       try {
         const familyGoogleLoginResponse = await familyGoogleLogin(credential);
@@ -159,12 +158,14 @@ export default function LoginPage({ navigation }) {
             [
               {
                 text: "확인",
-                onPress: () => availabilityCheck(user.email, user.id),
+                onPress: () => {
+                  availabilityCheck(user.email, user.id);
+                },
               },
             ]
           );
         } else {
-          Alert.alert("네트워크 오류로 인해 로그인에 실패했습니다.");
+          Alert.alert("네트워크 에러로 인해 로그인에 실패했습니다.");
         }
       }
     } catch (error) {
@@ -238,7 +239,7 @@ export default function LoginPage({ navigation }) {
           ]
         );
       } else {
-        Alert.alert("네트워크 오류로 인해 로그인에 실패했습니다.");
+        Alert.alert("오류", "네트워크 에러로 인해 로그인에 실패했습니다.");
       }
     }
   }
@@ -267,7 +268,7 @@ export default function LoginPage({ navigation }) {
           Alert.alert("안내", "해당 계정으로 재가입이 불가능합니다.");
         }
       } else {
-        Alert.alert("네트워크 오류로 인해 로그인에 실패했습니다.");
+        Alert.alert("오류", "네트워크 에러로 인해 로그인에 실패했습니다.");
       }
     }
   }

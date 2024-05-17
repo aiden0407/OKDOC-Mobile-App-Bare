@@ -76,7 +76,7 @@ export default function ChangePasswordScreen({ navigation }) {
         ]
       );
     } catch {
-      Alert.alert("현재 비밀번호가 일치하지 않습니다.");
+      Alert.alert("오류", "현재 비밀번호가 일치하지 않습니다.");
     }
   };
 

@@ -1,6 +1,6 @@
 // DataDog API
 import axios from "axios";
-import { DD_API_KEY } from "constants/api";
+import { ENV, DD_API_KEY } from "constants/api";
 import { Platform } from "react-native";
 import Constants from "expo-constants";
 import uuid from "react-native-uuid";
@@ -41,8 +41,9 @@ export const dataDogBackendError = async function (error) {
       data: {
         message: JSON.stringify(error?.response?.data?.message ?? error),
         message_detail: error?.response?.data ?? error,
+        request_body: error?.response?.config,
         ddsource: "react-native",
-        ddtags: `level:error,env:local,version:${Constants.manifest.version},platform:${Platform.OS}`,
+        ddtags: `level:error,env:${ENV},version:${Constants.manifest.version},platform:${Platform.OS}`,
         hostname: "backend",
         service: "okdoc-app",
         status: error?.response?.status === 404 ? "warn" : "error",
@@ -105,7 +106,7 @@ export const dataDogFrontendError = async function (error) {
         message: error.toString(),
         message_detail: JSON.stringify(error),
         ddsource: "react-native",
-        ddtags: `level:error,env:local,version:${Constants.manifest.version},platform:${Platform.OS}`,
+        ddtags: `level:error,env:${ENV},version:${Constants.manifest.version},platform:${Platform.OS}`,
         hostname: "frontend",
         service: "okdoc-app",
         status: "error",

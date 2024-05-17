@@ -6,20 +6,12 @@ import styled from "styled-components/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 //Components
-import * as Device from "expo-device";
 import { COLOR, BUTTON, INPUT_BOX } from "constants/design";
-import { ActivityIndicator, Alert } from "react-native";
+import { Platform, ActivityIndicator, Alert } from "react-native";
 import DateTimePicker, {
   DateTimePickerAndroid,
 } from "@react-native-community/datetimepicker";
-import {
-  SafeArea,
-  Container,
-  ScrollView,
-  Row,
-  Center,
-  Box,
-} from "components/Layout";
+import { SafeArea, Container, ScrollView, Row, Box } from "components/Layout";
 import { Text } from "components/Text";
 import { Image } from "components/Image";
 import { BoxInput } from "components/TextInput";
@@ -183,7 +175,10 @@ export default function PassportInformationScreen({ navigation }) {
         initPatient(loginToken);
       } catch (error) {
         setPassportCertifiactionState("NONE");
-        Alert.alert("계정 생성에 실패하였습니다. 다시 시도해 주시기 바랍니다.");
+        Alert.alert(
+          "오류",
+          "계정 생성에 실패하였습니다. 다시 시도해 주시기 바랍니다."
+        );
       }
     } catch (error) {
       if (error?.response?.data.statusCode === 422) {
@@ -319,7 +314,7 @@ export default function PassportInformationScreen({ navigation }) {
             </Text>
             <DateTimePickerOpenButton
               onPress={() =>
-                Device.osName === "Android"
+                Platform.OS === "android"
                   ? showBirthSelector()
                   : setIsBirthPickerShow(true)
               }
@@ -354,7 +349,7 @@ export default function PassportInformationScreen({ navigation }) {
             </Text>
             <DateTimePickerOpenButton
               onPress={() =>
-                Device.osName === "Android"
+                Platform.OS === "android"
                   ? showDateOfIssueSelector()
                   : setIsDateOfIssuePickerShow(true)
               }
@@ -378,7 +373,7 @@ export default function PassportInformationScreen({ navigation }) {
             </Text>
             <DateTimePickerOpenButton
               onPress={() =>
-                Device.osName === "Android"
+                Platform.OS === "android"
                   ? showDateOfExpirySelector()
                   : setIsDateOfExpiryPickerShow(true)
               }

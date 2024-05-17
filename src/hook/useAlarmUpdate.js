@@ -103,8 +103,11 @@ export default function useAlarmUpdate() {
         appContextDispatch({ type: "ALARM_DATA_UPDATED" });
       }, 1000);
     } catch (error) {
+      if (error?.data?.statusCode !== 404) {
+        // 알림내역 없는 404 에러 케이스 제외
+        dataDogFrontendError(error);
+      }
       appContextDispatch({ type: "ALARM_DATA_UPDATED" });
-      dataDogFrontendError(error);
     }
   };
 

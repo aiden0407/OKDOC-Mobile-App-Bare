@@ -72,7 +72,10 @@ export default function EmailPasswordScreen({ navigation }) {
         const loginToken = createLocalAccountResponse.data.response.accessToken;
         initPatient(loginToken, response.imp_uid);
       } catch (error) {
-        Alert.alert("계정 생성에 실패하였습니다. 다시 시도해 주시기 바랍니다.");
+        Alert.alert(
+          "오류",
+          "계정 생성에 실패하였습니다. 다시 시도해 주시기 바랍니다."
+        );
       }
     }
   };

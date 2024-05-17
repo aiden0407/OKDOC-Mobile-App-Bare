@@ -63,7 +63,7 @@ export default function LoginPage({ navigation }) {
       }
     } catch {
       setLoading(false);
-      Alert.alert("이메일과 비밀번호를 다시 확인해 주시기 바랍니다.");
+      Alert.alert("오류", "이메일과 비밀번호를 다시 확인해 주시기 바랍니다.");
     }
   };
 

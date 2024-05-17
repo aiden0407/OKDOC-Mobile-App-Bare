@@ -6,6 +6,7 @@ import { AppProvider } from "context/AppContext";
 import { ApiProvider } from "context/ApiContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import useVersionCheck from "hook/useVersionCheck";
+import { ENV } from "constants/api";
 
 // Default Settings
 import { COLOR } from "constants/design";
@@ -13,6 +14,7 @@ import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import {
+  Platform,
   Alert,
   Linking,
   View,
@@ -64,17 +66,14 @@ const client = new ApolloClient({
 
 // DataDog
 import {
-  BatchSize,
   DatadogProvider,
   DatadogProviderConfiguration,
-  SdkVerbosity,
-  UploadFrequency,
 } from "@datadog/mobile-react-native";
 import { DdRumReactNavigationTracking } from "@datadog/mobile-react-navigation";
 
 const config = new DatadogProviderConfiguration(
   "pubb82947c8f574567856c856ca4f0e32a9",
-  "prod",
+  ENV,
   "6aef2297-4d34-4dde-8d81-2d9ca3b678eb", // APPLICATION_ID
   true, // track User interactions (e.g.: Tap on buttons. You can use 'accessibilityLabel' element property to give tap action the name, otherwise element type will be reported)
   true, // track XHR Resources
@@ -155,7 +154,7 @@ function AppComponent() {
   async function registerForPushNotificationsAsync() {
     let token;
 
-    if (Device.osName === "Android") {
+    if (Platform.OS === "android") {
       await Notifications.setNotificationChannelAsync("default", {
         name: "default",
         importance: Notifications.AndroidImportance.MAX,

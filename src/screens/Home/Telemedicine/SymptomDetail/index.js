@@ -40,11 +40,11 @@ export default function SymptomDetailScreen({ navigation }) {
         if (result.assets[0].fileSize < 5 * 1024 * 1024) {
           setImage1(result.assets[0].uri);
         } else {
-          Alert.alert("10MB 이내의 이미지 파일만 첨부가 가능합니다.");
+          Alert.alert("안내", "10MB 이내의 이미지 파일만 첨부가 가능합니다.");
         }
       }
     } catch {
-      Alert.alert("이미지를 가져오는데 실패했습니다.");
+      Alert.alert("오류", "이미지를 가져오는데 실패했습니다.");
     }
   };
 
@@ -60,11 +60,11 @@ export default function SymptomDetailScreen({ navigation }) {
         if (result.assets[0].fileSize < 5 * 1024 * 1024) {
           setImage2(result.assets[0].uri);
         } else {
-          Alert.alert("5MB 이내의 이미지 파일만 첨부가 가능합니다.");
+          Alert.alert("안내", "10MB 이내의 이미지 파일만 첨부가 가능합니다.");
         }
       }
     } catch {
-      Alert.alert("이미지를 가져오는데 실패했습니다.");
+      Alert.alert("오류", "이미지를 가져오는데 실패했습니다.");
     }
   };
 
@@ -115,14 +115,14 @@ export default function SymptomDetailScreen({ navigation }) {
             <IconContainer>
               <IconColumn>
                 {image1 && (
-                  <CancleButton onPress={() => setImage1(null)}>
+                  <CancelButton onPress={() => setImage1(null)}>
                     <Image
                       source={circleClose}
                       width={20}
                       height={20}
                       zIndex={2}
                     />
-                  </CancleButton>
+                  </CancelButton>
                 )}
                 <IconButton onPress={pickImage1}>
                   {image1 ? (
@@ -148,14 +148,14 @@ export default function SymptomDetailScreen({ navigation }) {
               </IconColumn>
               <IconColumn>
                 {image2 && (
-                  <CancleButton onPress={() => setImage2(null)}>
+                  <CancelButton onPress={() => setImage2(null)}>
                     <Image
                       source={circleClose}
                       width={20}
                       height={20}
                       zIndex={2}
                     />
-                  </CancleButton>
+                  </CancelButton>
                 )}
                 <IconButton onPress={pickImage2}>
                   {image2 ? (
@@ -228,7 +228,7 @@ const IconColumn = styled.View`
   position: relative;
 `;
 
-const CancleButton = styled.Pressable`
+const CancelButton = styled.Pressable`
   width: 20px;
   height: 20px;
   border-radius: 20px;

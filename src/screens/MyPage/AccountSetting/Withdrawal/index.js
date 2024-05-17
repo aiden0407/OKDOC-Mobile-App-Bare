@@ -8,8 +8,8 @@ import { dataDogFrontendError } from "api/DataDog";
 
 //Components
 import { COLOR } from "constants/design";
-import { Alert } from "react-native";
-import { SafeArea, KeyboardAvoiding, Container, Row } from "components/Layout";
+import { Alert, Linking } from "react-native";
+import { SafeArea, KeyboardAvoiding, Container } from "components/Layout";
 import { Text } from "components/Text";
 import { LineInput } from "components/TextInput";
 import { SolidButton } from "components/Button";
@@ -89,7 +89,7 @@ export default function WithdrawalScreen({ navigation }) {
       navigation.navigate("Home");
       Alert.alert("안내", "회원탈퇴가 정상적으로 완료되었습니다.");
     } catch {
-      Alert.alert("네트워크 오류로 인해 정보를 불러오지 못했습니다.");
+      Alert.alert("오류", "네트워크 에러로 인해 정보를 불러오지 못했습니다.");
     }
   };
 
@@ -154,8 +154,3 @@ export default function WithdrawalScreen({ navigation }) {
     </SafeArea>
   );
 }
-
-const AgreeRow = styled.Pressable`
-  flex-direction: row;
-  align-items: center;
-`;
