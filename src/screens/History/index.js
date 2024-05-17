@@ -3,6 +3,7 @@ import { useState, useEffect, useContext } from "react";
 import { ApiContext } from "context/ApiContext";
 import { AppContext } from "context/AppContext";
 import useHistoryUpdate from "hook/useHistoryUpdate";
+import useReuseUpdate from "hook/useReuseUpdate";
 import styled from "styled-components/native";
 import { getCalendars } from "expo-localization";
 
@@ -24,19 +25,20 @@ import { SolidButton } from "components/Button";
 import NeedLogin from "components/NeedLogin";
 
 //Api
-import { canclePayment, cancleCashlessPayment } from "api/History";
+import { cancelCashlessPayment } from "api/History";
+import { cancelIosPurchase, cancelAndroidPurchase } from "api/Iap";
 
 //Assets
 import letterIcon from "assets/icons/mypage-letter.png";
 
 export default function HistoryScreen({ navigation }) {
   const { refresh } = useHistoryUpdate();
+  const { updateReuse } = useReuseUpdate();
   const {
     state: { accountData, historyData },
   } = useContext(ApiContext);
   const {
     state: { historyDataLoading },
-    dispatch: appContextDispatch,
   } = useContext(AppContext);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -50,11 +52,13 @@ export default function HistoryScreen({ navigation }) {
   const onRefresh = () => {
     setRefreshing(true);
     refresh();
+    updateReuse();
   };
 
   const loadingRefresh = () => {
     setIsLoading(true);
     refresh();
+    updateReuse();
   };
 
   useEffect(() => {
@@ -81,10 +85,10 @@ export default function HistoryScreen({ navigation }) {
     return hashtags;
   }
 
-  function handleCancleReservation(item) {
+  function handleCancelReservation(item) {
     Alert.alert(
       "해당 상담 예약을 취소하시겠습니까?",
-      "환불 규정에 따라 취소\n수수료가 발생할 수 있습니다.",
+      "환불 규정에 따라 의료 상담 이용권이 지급됩니다.",
       [
         {
           text: "이전으로",
@@ -92,13 +96,13 @@ export default function HistoryScreen({ navigation }) {
         {
           text: "예약 취소",
           style: "destructive",
-          onPress: () => handleCancleComplete(item),
+          onPress: () => handleCancelComplete(item),
         },
       ]
     );
   }
 
-  const handleCancleComplete = async function (item) {
+  const handleCancelComplete = async function (item) {
     if (getRemainingTime(item.wish_at) < 300) {
       Alert.alert("취소 불가 안내", "상담 5분 전에는 취소가 불가능합니다.", [
         {
@@ -108,11 +112,19 @@ export default function HistoryScreen({ navigation }) {
       ]);
     } else {
       try {
-        await cancleCashlessPayment(accountData.loginToken, item.purchaseId);
-        Alert.alert("해당 예약이 정상적으로 취소되었습니다.", "", [
+        if (item.fullDocument?.appleIapUnsignedTransaction) {
+          await cancelIosPurchase(accountData.loginToken, item.purchaseId);
+        } else if (item.fullDocument?.googleIapProductPurchase) {
+          await cancelAndroidPurchase(accountData.loginToken, item.purchaseId);
+        } else {
+          await cancelCashlessPayment(accountData.loginToken, item.purchaseId);
+        }
+        Alert.alert("안내", "해당 예약이 정상적으로 취소되었습니다.", [
           {
             text: "확인",
-            onPress: () => loadingRefresh(),
+            onPress: () => {
+              loadingRefresh();
+            },
           },
         ]);
       } catch {
@@ -152,6 +164,10 @@ export default function HistoryScreen({ navigation }) {
     navigation.navigate("LoginStackNavigation");
   }
 
+  function formatNumber(number) {
+    return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  }
+
   function HistoryCard({ item, type }) {
     return (
       <HistoryCardContainer>
@@ -169,9 +185,11 @@ export default function HistoryScreen({ navigation }) {
             {type === "pastHistory" ? (
               <Text T7 color={COLOR.GRAY1}>
                 결제{" "}
-                {item?.invoiceInfo?.P_TID
-                  ? (item?.biddingInfo?.product?.price + 50000).toLocaleString()
-                  : item?.biddingInfo?.product?.price.toLocaleString()}
+                {formatNumber(
+                  item?.invoiceInfo?.P_TID
+                    ? item?.biddingInfo?.product?.price + 50000
+                    : item?.biddingInfo?.product?.price
+                )}
                 원
               </Text>
             ) : null}
@@ -180,7 +198,7 @@ export default function HistoryScreen({ navigation }) {
             getRemainingTime(item?.wish_at) > 0 ? (
               <CardTitleButton
                 underlayColor={COLOR.GRAY5}
-                onPress={() => handleCancleReservation(item)}
+                onPress={() => handleCancelReservation(item)}
               >
                 <Text T7 medium color={COLOR.GRAY1}>
                   예약 취소
@@ -298,9 +316,7 @@ export default function HistoryScreen({ navigation }) {
                 </Text>
               </CustomSolidButton>
             )
-          ) : !item?.invoiceInfo ||
-            item?.invoiceInfo?.P_TID ||
-            item?.invoiceInfo?.product?.price === 0 ? (
+          ) : !item?.invoiceInfo?.needPayment ? (
             <CustomSolidButton
               underlayColor={COLOR.SUB1}
               onPress={() => handleViewTelemedicineDetail(item)}

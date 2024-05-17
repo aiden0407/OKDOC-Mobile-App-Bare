@@ -57,6 +57,7 @@ import oncologyIcon from "assets/icons/medical-subjects/oncology.png";
 export const IAP_PRODUCT_ID = {
   TREATMENT_APPOINTMENT: "treatment.appointment",
   TREATMENT_EXTENSION: "treatment.extension",
+  INTERNAL_TOKEN: "internal.staff.token",
 };
 
 export const POLICY = {

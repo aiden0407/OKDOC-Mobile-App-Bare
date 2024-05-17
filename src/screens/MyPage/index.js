@@ -4,6 +4,7 @@ import { ApiContext } from "context/ApiContext";
 import styled from "styled-components/native";
 import useTestAccount from "hook/useTestAccount";
 import { dataDogFrontendError } from "api/DataDog";
+import { useIsFocused } from "@react-navigation/native";
 
 //Components
 import { COLOR } from "constants/design";
@@ -20,13 +21,15 @@ import profileCard from "assets/icons/mypage-profile.png";
 
 // IAP
 import { withIAPContext, requestPurchase, useIAP } from "react-native-iap";
-const skus = ["internal.staff.token"];
+import { IAP_PRODUCT_ID } from "constants/service";
+const skus = [IAP_PRODUCT_ID.INTERNAL_TOKEN];
 
 const MyPageScreen = ({ navigation }) => {
   const {
-    state: { accountData, profileData, reuseTickets },
+    state: { accountData, profileData },
   } = useContext(ApiContext);
   const mainProfile = profileData?.[0];
+  const isFocused = useIsFocused();
 
   const {
     initConnectionError,
@@ -53,7 +56,7 @@ const MyPageScreen = ({ navigation }) => {
   }, [initConnectionError]);
 
   useEffect(() => {
-    if (currentPurchase && useTestAccount(accountData?.email)) {
+    if (isFocused && currentPurchase && useTestAccount(accountData?.email)) {
       Clipboard.setStringAsync(JSON.stringify(currentPurchase));
       Alert.alert("토큰 구매", "결제 정보가 클립보드에 복사되었습니다.");
     }

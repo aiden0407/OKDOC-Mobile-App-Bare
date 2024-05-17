@@ -206,7 +206,7 @@ export const unlockAndroidInvoice = async function (
   }
 };
 
-export const cancleIosPurchase = async function (loginToken, purchaseId) {
+export const cancelIosPurchase = async function (loginToken, purchaseId) {
   try {
     let options = {
       url: `${APIURL}/ios-iap-consumable/cancel/${purchaseId}`,
@@ -222,7 +222,7 @@ export const cancleIosPurchase = async function (loginToken, purchaseId) {
     throw error.response;
   }
 };
-export const cancleAndroidPurchase = async function (loginToken, purchaseId) {
+export const cancelAndroidPurchase = async function (loginToken, purchaseId) {
   try {
     let options = {
       url: `${APIURL}/android-iap-consumable/cancel/${purchaseId}`,

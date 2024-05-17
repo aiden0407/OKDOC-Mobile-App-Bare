@@ -1,11 +1,12 @@
 //React
-import { useState, useEffect, useContext } from "react";
+import { useEffect, useContext } from "react";
 import { ApiContext } from "context/ApiContext";
-import { useIsFocused } from "@react-navigation/native";
 import styled from "styled-components/native";
+import useTestAccount from "hook/useTestAccount";
+import { ENV } from "constants/api";
 
 //Components
-import { COLOR, BUTTON } from "constants/design";
+import { COLOR } from "constants/design";
 import { Alert } from "react-native";
 import {
   SafeArea,
@@ -20,76 +21,170 @@ import { Text } from "components/Text";
 import { Image } from "components/Image";
 import { SolidButton } from "components/Button";
 
-//Api
-import { getBiddingInformation, getPaymentInformation } from "api/Home";
+// react-native-iap
+import {
+  consumeIosInvoice,
+  consumeAndroidInvoice,
+  unlockIosPurchase,
+  unlockAndroidInvoice,
+} from "api/Iap";
+import { IAP_PRODUCT_ID } from "constants/service";
+import { withIAPContext, requestPurchase, useIAP } from "react-native-iap";
+const skus = [IAP_PRODUCT_ID.TREATMENT_EXTENSION];
 
-export default function NeedPaymentDetailScreen({ navigation, route }) {
+const NeedPaymentDetailScreen = ({ navigation, route }) => {
   const {
     state: { accountData },
   } = useContext(ApiContext);
-  const [isLoading, setIsLoading] = useState(true);
-  const [biddingData, setBiddingData] = useState();
-  const [biddingPaymentData, setBiddingPaymentData] = useState();
   const telemedicineData = route.params.telemedicineData;
-  const biddingId = telemedicineData.bidding_id;
 
-  const isFocused = useIsFocused();
+  const {
+    initConnectionError,
+    currentPurchase,
+    products,
+    getProducts,
+    finishTransaction,
+  } = useIAP();
 
   useEffect(() => {
-    if (isFocused) {
-      initBiddingData();
-    }
-  }, [isFocused]);
-
-  useEffect(() => {
-    initBiddingData();
+    initData();
   }, []);
 
-  const initBiddingData = async function () {
-    try {
-      const response = await getBiddingInformation(
-        accountData.loginToken,
-        biddingId
+  const initData = async function () {
+    if (ENV === "production" && useTestAccount(accountData.email)) {
+      const internalSkus = [IAP_PRODUCT_ID.INTERNAL_TOKEN];
+      await getProducts({ skus: internalSkus });
+    } else {
+      await getProducts({ skus });
+    }
+  };
+
+  useEffect(() => {
+    if (initConnectionError) {
+      Alert.alert(
+        "오류",
+        `${
+          Platform.OS === "ios" ? "앱스토어" : "구글 플레이 스토어"
+        } 연결 오류가 발생했습니다. 앱을 다시 실행시켜 주시기 바랍니다.`
       );
-      setBiddingData(response.data.response);
-      getBiddingPaymentData(response.data.response.P_TID);
-    } catch {
-      Alert.alert("네트워크 오류로 인해 정보를 불러오지 못했습니다.");
     }
-  };
+  }, [initConnectionError]);
 
-  const getBiddingPaymentData = async function (P_TID) {
+  async function handleInvoicePaymnt() {
+    // 인앱결제 프로세스
+    const params = Platform.select({
+      ios: {
+        sku: products[0].productId,
+      },
+      android: {
+        skus: [products[0].productId],
+      },
+    });
     try {
-      const response = await getPaymentInformation(P_TID);
-      setBiddingPaymentData(response.data.response);
-      setIsLoading(false);
-    } catch {
-      Alert.alert("결제 정보를 불러오지 못했습니다.");
+      await requestPurchase(params);
+    } catch (error) {
+      if (error?.code === "E_USER_CANCELLED") {
+        // 유저가 결제창을 나감
+      } else {
+        dataDogFrontendError(error);
+      }
     }
-  };
-
-  function handleInvoicePaymnt() {
-    navigation.navigate("Payment", { telemedicineData: telemedicineData });
   }
 
-  function formatDate(inputDate) {
-    const year = inputDate.slice(0, 4);
-    const month = inputDate.slice(4, 6);
-    const day = inputDate.slice(6, 8);
-    const hour = inputDate.slice(8, 10);
-    const minute = inputDate.slice(10, 12);
+  useEffect(() => {
+    if (currentPurchase) {
+      const makeTreatmentAppointment = async () => {
+        if (Platform.OS === "ios") {
+          try {
+            const consumeResponse = await consumeIosInvoice(
+              accountData.loginToken,
+              telemedicineData.invoiceInfo.id,
+              currentPurchase.transactionId
+            );
+            const purchaseId = consumeResponse.data.response.id;
 
-    const formattedDate = `${year}.${month}.${day} (${hour}:${minute})`;
-    return formattedDate;
+            try {
+              await finishTransaction({
+                purchase: currentPurchase,
+                isConsumable: true,
+                developerPayloadAndroid: undefined,
+              });
+
+              setTimeout(async () => {
+                try {
+                  await unlockIosPurchase(accountData.loginToken, purchaseId);
+                  navigation.replace("PaymentComplete", {
+                    telemedicineData: telemedicineData,
+                  });
+                } catch (error) {
+                  console.log("unlockIosPurchase error: ", error?.data);
+                }
+              }, 2000);
+            } catch (error) {
+              console.log("finishTransaction error: ", error?.data);
+            }
+          } catch (error) {
+            console.log("consumeIosInvoice error: ", error?.data);
+          }
+        } else {
+          const purchaseToken = currentPurchase.purchaseToken;
+          try {
+            const consumeResponse = await consumeAndroidInvoice(
+              accountData.loginToken,
+              telemedicineData.invoiceInfo.id,
+              currentPurchase.transactionId,
+              purchaseToken
+            );
+            const purchaseId = consumeResponse.data.response.id;
+
+            try {
+              await finishTransaction({
+                purchase: currentPurchase,
+                isConsumable: true,
+                developerPayloadAndroid: undefined,
+              });
+
+              setTimeout(async () => {
+                try {
+                  await unlockAndroidInvoice(
+                    accountData.loginToken,
+                    purchaseId,
+                    purchaseToken
+                  );
+                  navigation.replace("TelemedicineRoomNavigation", {
+                    screen: "PaymentComplete",
+                    params: { telemedicineData: telemedicineData },
+                  });
+                } catch (error) {
+                  console.log("unlockAndroidPurchase error: ", error?.data);
+                }
+              }, 2000);
+            } catch (error) {
+              console.log("finishTransaction error: ", error?.data);
+            }
+          } catch (error) {
+            console.log("consumeAndroidInvoice error: ", error);
+          }
+        }
+      };
+
+      makeTreatmentAppointment();
+    }
+  }, [currentPurchase]);
+
+  function formatDate(inputDate) {
+    const date = new Date(inputDate);
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
+    const day = date.getDate().toString().padStart(2, "0");
+    const hour = date.getHours().toString().padStart(2, "0");
+    const minute = date.getMinutes().toString().padStart(2, "0");
+    return `${year}.${month}.${day} (${hour}:${minute})`;
   }
 
   function convertToHashtags(dataArray) {
     const hashtags = dataArray.map((tag) => `#${tag}`).join(" ");
     return hashtags;
-  }
-
-  if (isLoading) {
-    return null;
   }
 
   return (
@@ -159,14 +254,14 @@ export default function NeedPaymentDetailScreen({ navigation, route }) {
               결제 내역
             </Text>
             <Text T3 bold color={COLOR.MAIN} mTop={20}>
-              상담 예약 {Number(biddingPaymentData.price)?.toLocaleString()}원
+              상담 예약 130,000원
             </Text>
             <Row mTop={18}>
               <Text T6 medium color={COLOR.GRAY1} mRight={42}>
                 결제 금액
               </Text>
               <Text T6 color={COLOR.GRAY1}>
-                {Number(biddingPaymentData.price)?.toLocaleString()}원 | 일시불
+                130,000원 | 일시불
               </Text>
             </Row>
             <Row mTop={6}>
@@ -174,7 +269,7 @@ export default function NeedPaymentDetailScreen({ navigation, route }) {
                 결제 수단
               </Text>
               <Text T6 color={COLOR.GRAY1}>
-                신용카드
+                인앱결제
               </Text>
             </Row>
             <Row mTop={6}>
@@ -182,7 +277,7 @@ export default function NeedPaymentDetailScreen({ navigation, route }) {
                 결제 일시
               </Text>
               <Text T6 color={COLOR.GRAY1}>
-                {formatDate(biddingData?.P_AUTH_DT)}
+                {formatDate(telemedicineData?.fullDocument?.updatedAt)}
               </Text>
             </Row>
           </PaddingContainer>
@@ -200,7 +295,9 @@ export default function NeedPaymentDetailScreen({ navigation, route }) {
       </Container>
     </SafeArea>
   );
-}
+};
+
+export default withIAPContext(NeedPaymentDetailScreen);
 
 const DoctorContainer = styled.View`
   margin-top: 24px;

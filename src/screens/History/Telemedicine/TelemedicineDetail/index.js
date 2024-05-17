@@ -3,6 +3,8 @@ import { useState, useEffect, useContext } from "react";
 import { ApiContext } from "context/ApiContext";
 import { useIsFocused } from "@react-navigation/native";
 import styled from "styled-components/native";
+import useTestAccount from "hook/useTestAccount";
+import { ENV } from "constants/api";
 
 //Components
 import { COLOR, BUTTON } from "constants/design";
@@ -19,50 +21,72 @@ import {
 import { Text } from "components/Text";
 import { Image } from "components/Image";
 import { SolidButton } from "components/Button";
+// import * as Clipboard from "expo-clipboard";
 
 //Api
-import { getBiddingInformation, getPaymentInformation } from "api/Home";
-import { getInvoiceInformation, getTreatmentResults } from "api/History";
+import {
+  getInvoicePurchaseInformation,
+  getTreatmentResults,
+} from "api/History";
 
 //Expo Print
 import * as Print from "expo-print";
 import { shareAsync } from "expo-sharing";
 
-export default function TelemedicineDetailScreen({ navigation, route }) {
+// react-native-iap
+import {
+  consumeIosInvoice,
+  consumeAndroidInvoice,
+  unlockIosPurchase,
+  unlockAndroidInvoice,
+} from "api/Iap";
+import { IAP_PRODUCT_ID } from "constants/service";
+import { withIAPContext, requestPurchase, useIAP } from "react-native-iap";
+const skus = [IAP_PRODUCT_ID.TREATMENT_EXTENSION];
+
+const TelemedicineDetailScreen = ({ navigation, route }) => {
   const {
     state: { accountData },
   } = useContext(ApiContext);
   const [isLoading, setIsLoading] = useState(true);
-  const [biddingData, setBiddingData] = useState();
-  const [invoiceData, setInvoiceData] = useState();
-  const [biddingPaymentData, setBiddingPaymentData] = useState();
   const [invoicePaymentData, setInvoicePaymentData] = useState();
   const [needInvoicePayment, setNeedInvoicePayment] = useState(false);
   const telemedicineData = route.params.telemedicineData;
   const biddingId = telemedicineData.bidding_id;
-
   const isFocused = useIsFocused();
+
+  const {
+    initConnectionError,
+    currentPurchase,
+    products,
+    getProducts,
+    finishTransaction,
+  } = useIAP();
+
+  useEffect(() => {
+    if (initConnectionError) {
+      Alert.alert(
+        "오류",
+        `${
+          Platform.OS === "ios" ? "앱스토어" : "구글 플레이 스토어"
+        } 연결 오류가 발생했습니다. 앱을 다시 실행시켜 주시기 바랍니다.`
+      );
+    }
+  }, [initConnectionError]);
 
   useEffect(() => {
     if (isFocused) {
-      initBiddingData();
+      initData();
     }
   }, [isFocused]);
 
-  useEffect(() => {
-    initBiddingData();
-  }, []);
-
-  const initBiddingData = async function () {
-    try {
-      const response = await getBiddingInformation(
-        accountData.loginToken,
-        biddingId
-      );
-      setBiddingData(response.data.response);
-      getBiddingPaymentData(response.data.response.P_TID);
-    } catch {
-      Alert.alert("네트워크 오류로 인해 정보를 불러오지 못했습니다.");
+  const initData = async function () {
+    // await Clipboard.setStringAsync(JSON.stringify(telemedicineData));
+    if (ENV === "production" && useTestAccount(accountData.email)) {
+      const internalSkus = [IAP_PRODUCT_ID.INTERNAL_TOKEN];
+      await getProducts({ skus: internalSkus });
+    } else {
+      await getProducts({ skus });
     }
 
     try {
@@ -71,73 +95,145 @@ export default function TelemedicineDetailScreen({ navigation, route }) {
         telemedicineData.id
       );
       telemedicineData.opinion = response.data.response[0];
-    } catch {
-      // 404 error면 소견서 작성중
-      return null;
-    }
-  };
-
-  const getBiddingPaymentData = async function (P_TID) {
-    if (P_TID) {
-      try {
-        const response = await getPaymentInformation(P_TID);
-        setBiddingPaymentData(response.data.response);
-        setIsLoading(false);
-        initInvoiceData();
-      } catch (error) {
-        console.log("getPaymentInformation error:", error);
-      }
-    } else {
-      // 0원 결제라 결제 정보 없음
-      setIsLoading(false);
-    }
-  };
-
-  const initInvoiceData = async function () {
-    try {
-      const response = await getInvoiceInformation(
-        accountData.loginToken,
-        biddingId
-      );
-      setInvoiceData(response.data.response?.[0]);
-      getInvoicePaymentData(response.data.response?.[0].P_TID);
     } catch (error) {
-      if (error?.data?.statusCode === 404) {
-        //진료 연장 안함
-        return null;
+      if (error.data.statusCode === 404) {
+        //소견서 작성중
       } else {
-        Alert.alert("네트워크 오류로 인해 정보를 불러오지 못했습니다.");
+        Alert.alert(
+          "오류",
+          "네트워크 에러로 인해 소견서를 불러오지 못했습니다."
+        );
       }
     }
-  };
 
-  const getInvoicePaymentData = async function (P_TID) {
-    try {
-      const response = await getPaymentInformation(P_TID);
-      setInvoicePaymentData(response.data.response);
-      setIsLoading(false);
-    } catch {
-      //추가 결제 필요
-      setNeedInvoicePayment(true);
+    if (telemedicineData?.invoiceInfo) {
+      try {
+        const response = await getInvoicePurchaseInformation(
+          accountData.loginToken,
+          telemedicineData.invoiceInfo.id
+        );
+        setInvoicePaymentData(response.data.response?.[0]);
+        // await Clipboard.setStringAsync(
+        //   JSON.stringify(response.data.response?.[0])
+        // );
+      } catch {
+        setNeedInvoicePayment(true);
+      }
     }
+
+    setIsLoading(false);
   };
 
-  function handleInvoicePaymnt() {
-    navigation.navigate("TelemedicineRoomNavigation", {
-      screen: "Payment",
-      params: { telemedicineData: telemedicineData },
+  async function handleInvoicePaymnt() {
+    // 인앱결제 프로세스
+    const params = Platform.select({
+      ios: {
+        sku: products[0].productId,
+      },
+      android: {
+        skus: [products[0].productId],
+      },
     });
+    try {
+      await requestPurchase(params);
+    } catch (error) {
+      if (error?.code === "E_USER_CANCELLED") {
+        // 유저가 결제창을 나감
+      } else {
+        dataDogFrontendError(error);
+      }
+    }
   }
 
-  function formatDate(inputDate) {
-    const year = inputDate.slice(0, 4);
-    const month = inputDate.slice(4, 6);
-    const day = inputDate.slice(6, 8);
-    const hour = inputDate.slice(8, 10);
-    const minute = inputDate.slice(10, 12);
+  useEffect(() => {
+    if (currentPurchase) {
+      const makeTreatmentAppointment = async () => {
+        if (Platform.OS === "ios") {
+          try {
+            const consumeResponse = await consumeIosInvoice(
+              accountData.loginToken,
+              telemedicineData.invoiceInfo.id,
+              currentPurchase.transactionId
+            );
+            const purchaseId = consumeResponse.data.response.id;
 
-    const formattedDate = `${year}.${month}.${day} (${hour}:${minute})`;
-    return formattedDate;
+            try {
+              await finishTransaction({
+                purchase: currentPurchase,
+                isConsumable: true,
+                developerPayloadAndroid: undefined,
+              });
+
+              setTimeout(async () => {
+                try {
+                  await unlockIosPurchase(accountData.loginToken, purchaseId);
+                  navigation.replace("PaymentComplete", {
+                    telemedicineData: telemedicineData,
+                  });
+                } catch (error) {
+                  console.log("unlockIosPurchase error: ", error?.data);
+                }
+              }, 2000);
+            } catch (error) {
+              console.log("finishTransaction error: ", error?.data);
+            }
+          } catch (error) {
+            console.log("consumeIosInvoice error: ", error?.data);
+          }
+        } else {
+          const purchaseToken = currentPurchase.purchaseToken;
+          try {
+            console.log("==========consumeAndroidInvoice start==========");
+            const consumeResponse = await consumeAndroidInvoice(
+              accountData.loginToken,
+              telemedicineData.invoiceInfo.id,
+              currentPurchase.transactionId,
+              purchaseToken
+            );
+            const purchaseId = consumeResponse.data.response.id;
+
+            try {
+              await finishTransaction({
+                purchase: currentPurchase,
+                isConsumable: true,
+                developerPayloadAndroid: undefined,
+              });
+
+              setTimeout(async () => {
+                try {
+                  await unlockAndroidInvoice(
+                    accountData.loginToken,
+                    purchaseId,
+                    purchaseToken
+                  );
+                  navigation.replace("PaymentComplete", {
+                    telemedicineData: telemedicineData,
+                  });
+                } catch (error) {
+                  console.log("unlockAndroidPurchase error: ", error?.data);
+                }
+              }, 2000);
+            } catch (error) {
+              console.log("finishTransaction error: ", error?.data);
+            }
+          } catch (error) {
+            console.log("consumeAndroidInvoice error: ", error?.data);
+          }
+        }
+      };
+
+      makeTreatmentAppointment();
+    }
+  }, [currentPurchase]);
+
+  function formatDate(inputDate) {
+    const date = new Date(inputDate);
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
+    const day = date.getDate().toString().padStart(2, "0");
+    const hour = date.getHours().toString().padStart(2, "0");
+    const minute = date.getMinutes().toString().padStart(2, "0");
+    return `${year}.${month}.${day} (${hour}:${minute})`;
   }
 
   function formatDate2(inputDate) {
@@ -152,9 +248,7 @@ export default function TelemedicineDetailScreen({ navigation, route }) {
     const year = date.getFullYear();
     const month = date.getMonth() + 1;
     const day = date.getDate();
-
-    const formattedDate = `${year}년 ${month}월 ${day}일`;
-    return formattedDate;
+    return `${year}년 ${month}월 ${day}일`;
   }
 
   function concatenateDeasesName(arr) {
@@ -572,62 +666,77 @@ export default function TelemedicineDetailScreen({ navigation, route }) {
                   </Center>
                 )}
               </PaddingContainer>
-              {biddingPaymentData && <DividingLine mTop={36} />}
+              <DividingLine mTop={36} />
             </>
           )}
 
-          {biddingPaymentData ? (
-            <>
-              <PaddingContainer>
-                <Text T3 bold mTop={24}>
-                  {telemedicineData?.STATUS === "CANCELED" ? "취소" : "결제"}{" "}
-                  내역
+          <PaddingContainer>
+            <Text T3 bold mTop={24}>
+              {telemedicineData?.STATUS === "CANCELED" ? "취소" : "결제"} 내역
+            </Text>
+            <Text T3 bold color={COLOR.MAIN} mTop={20}>
+              진료 상담 예약
+            </Text>
+            <Row mTop={18}>
+              <Text T6 medium color={COLOR.GRAY1} mRight={42}>
+                결제 금액
+              </Text>
+              <Text T6 color={COLOR.GRAY1}>
+                {telemedicineData.fullDocument?.appleIapUnsignedTransaction ||
+                telemedicineData.fullDocument?.googleIapProductPurchase
+                  ? "130,000원 | 일시불"
+                  : "0원"}
+              </Text>
+            </Row>
+            <Row mTop={6}>
+              <Text T6 medium color={COLOR.GRAY1} mRight={42}>
+                결제 수단
+              </Text>
+              <Text T6 color={COLOR.GRAY1}>
+                {telemedicineData.fullDocument?.appleIapUnsignedTransaction ||
+                telemedicineData.fullDocument?.googleIapProductPurchase
+                  ? "인앱결제"
+                  : "프로모션"}
+              </Text>
+            </Row>
+            <Row mTop={6}>
+              <Text T6 medium color={COLOR.GRAY1} mRight={42}>
+                결제 일시
+              </Text>
+              <Text T6 color={COLOR.GRAY1}>
+                {formatDate(telemedicineData?.fullDocument?.updatedAt)}
+              </Text>
+            </Row>
+            {telemedicineData?.STATUS === "CANCELED" &&
+            (telemedicineData.fullDocument?.appleIapUnsignedTransaction ||
+              telemedicineData.fullDocument?.googleIapProductPurchase) ? (
+              <Row mTop={6}>
+                <Text T6 medium color={COLOR.GRAY1} mRight={42}>
+                  반환 내역
                 </Text>
-                <Text T3 bold color={COLOR.MAIN} mTop={20}>
-                  상담 예약 {Number(biddingPaymentData.price)?.toLocaleString()}
-                  원
+                <Text T6 color={COLOR.GRAY1}>
+                  이용권 1매
                 </Text>
-                <Row mTop={18}>
-                  <Text T6 medium color={COLOR.GRAY1} mRight={42}>
-                    결제 금액
-                  </Text>
-                  <Text T6 color={COLOR.GRAY1}>
-                    {Number(biddingPaymentData.price)?.toLocaleString()}원 |
-                    일시불
-                  </Text>
-                </Row>
-                <Row mTop={6}>
-                  <Text T6 medium color={COLOR.GRAY1} mRight={42}>
-                    결제 수단
-                  </Text>
-                  <Text T6 color={COLOR.GRAY1}>
-                    신용카드
-                  </Text>
-                </Row>
-                <Row mTop={6}>
-                  <Text T6 medium color={COLOR.GRAY1} mRight={42}>
-                    결제 일시
-                  </Text>
-                  <Text T6 color={COLOR.GRAY1}>
-                    {formatDate(biddingData?.P_AUTH_DT)}
-                  </Text>
-                </Row>
-              </PaddingContainer>
-            </>
-          ) : null}
+              </Row>
+            ) : (
+              <></>
+            )}
+          </PaddingContainer>
 
           {invoicePaymentData ? (
             <PaddingContainer>
               <Text T3 bold color={COLOR.MAIN} mTop={36}>
-                상담 연장 {Number(invoicePaymentData.price)?.toLocaleString()}원
+                진료 상담 연장
               </Text>
               <Row mTop={18}>
                 <Text T6 medium color={COLOR.GRAY1} mRight={42}>
                   결제 금액
                 </Text>
                 <Text T6 color={COLOR.GRAY1}>
-                  {Number(invoicePaymentData.price)?.toLocaleString()}원 |
-                  일시불
+                  {telemedicineData.fullDocument?.appleIapUnsignedTransaction ||
+                  telemedicineData.fullDocument?.googleIapProductPurchase
+                    ? "50,000원 | 일시불"
+                    : "0원"}
                 </Text>
               </Row>
               <Row mTop={6}>
@@ -635,7 +744,10 @@ export default function TelemedicineDetailScreen({ navigation, route }) {
                   결제 수단
                 </Text>
                 <Text T6 color={COLOR.GRAY1}>
-                  신용카드
+                  {telemedicineData.fullDocument?.appleIapUnsignedTransaction ||
+                  telemedicineData.fullDocument?.googleIapProductPurchase
+                    ? "인앱결제"
+                    : "프로모션"}
                 </Text>
               </Row>
               <Row mTop={6}>
@@ -643,7 +755,7 @@ export default function TelemedicineDetailScreen({ navigation, route }) {
                   결제 일시
                 </Text>
                 <Text T6 color={COLOR.GRAY1}>
-                  {formatDate(invoiceData?.P_AUTH_DT)}
+                  {formatDate(invoicePaymentData?.updatedAt)}
                 </Text>
               </Row>
             </PaddingContainer>
@@ -664,7 +776,9 @@ export default function TelemedicineDetailScreen({ navigation, route }) {
       </Container>
     </SafeArea>
   );
-}
+};
+
+export default withIAPContext(TelemedicineDetailScreen);
 
 const DoctorContainer = styled.View`
   margin-top: 24px;

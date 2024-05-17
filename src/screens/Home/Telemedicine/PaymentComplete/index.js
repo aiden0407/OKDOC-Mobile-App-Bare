@@ -36,13 +36,15 @@ export default function PaymentCompleteScreen({ navigation, route }) {
   } = useContext(AppContext);
   const [isLoading, setIsLoading] = useState(true);
   const [biddingData, setBiddingData] = useState();
-  const [paymentData, setPaymentData] = useState();
+  // const [paymentData, setPaymentData] = useState();
   const biddingId = route.params?.biddingId;
+  const type = route.params?.type;
 
   useEffect(() => {
     initBiddingData();
   }, []);
 
+  // 비딩 데이터 말고 이전 페이지에서 결제 type과 그에 따른 결제일시, 진료예약시간 등을 전달
   const initBiddingData = async function () {
     try {
       const response = await getBiddingInformation(
@@ -50,41 +52,30 @@ export default function PaymentCompleteScreen({ navigation, route }) {
         biddingId
       );
       setBiddingData(response.data.response);
-      initPaymentData(response.data.response.P_TID);
-    } catch {
-      Alert.alert("네트워크 오류로 인해 정보를 불러오지 못했습니다.");
+      setIsLoading(false);
+    } catch (error) {
+      Alert.alert("오류", "네트워크 에러로 인해 정보를 불러오지 못했습니다.");
       navigation.goBack();
     }
   };
 
-  const initPaymentData = async function (P_TID) {
-    try {
-      const response = await getPaymentInformation(P_TID);
-      setPaymentData(response.data.response);
-      setIsLoading(false);
-    } catch {
-      // 0원 결제라 결제 정보 없음
-      setIsLoading(false);
-    }
-  };
-
-  // function formatDate(inputDate) {
-  //   const year = inputDate.slice(0, 4);
-  //   const month = inputDate.slice(4, 6);
-  //   const day = inputDate.slice(6, 8);
-  //   const hour = inputDate.slice(8, 10);
-  //   const minute = inputDate.slice(10, 12);
-
-  //   const formattedDate = `${year}.${month}.${day} (${hour}:${minute})`;
-  //   return formattedDate;
-  // }
+  function formatDate(date) {
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
+    const day = date.getDate().toString().padStart(2, "0");
+    const hour = date.getHours().toString().padStart(2, "0");
+    const minute = date.getMinutes().toString().padStart(2, "0");
+    // 형식: yyyy.mm.dd (HH:MM)
+    return `${year}.${month}.${day} (${hour}:${minute})`;
+  }
 
   function handleConfirm() {
-    dispatch({ type: "TELEMEDICINE_RESERVATION_CONFIRMED" });
     refresh();
     refreshAlarm();
     updateReuse();
-    navigation.navigate("BottomTapNavigation", { screen: "History" });
+    setTimeout(() => {
+      navigation.navigate("BottomTapNavigation", { screen: "History" });
+    }, 1000);
   }
 
   if (isLoading) {
@@ -104,44 +95,42 @@ export default function PaymentCompleteScreen({ navigation, route }) {
     <SafeArea>
       <Container>
         <Container>
-          {paymentData && (
-            <>
-              <PaddingContainer>
-                <Text T3 bold mTop={30}>
-                  결제가 완료되었어요
+          <PaddingContainer>
+            <Text T3 bold mTop={30}>
+              결제가 완료되었어요
+            </Text>
+            <Text T3 bold color={COLOR.MAIN} mTop={9}>
+              의료 상담 10분 진행
+            </Text>
+            <Row mTop={18}>
+              <Text T6 medium color={COLOR.GRAY1} mRight={42}>
+                결제 금액
+              </Text>
+              <Text T6 color={COLOR.GRAY1}>
+                130,000원
+              </Text>
+            </Row>
+            <Row mTop={6}>
+              <Text T6 medium color={COLOR.GRAY1} mRight={42}>
+                결제 수단
+              </Text>
+              <Text T6 color={COLOR.GRAY1}>
+                {type}
+              </Text>
+            </Row>
+            {type === "인앱결제" && (
+              <Row mTop={6}>
+                <Text T6 medium color={COLOR.GRAY1} mRight={42}>
+                  결제 일시
                 </Text>
-                <Text T3 bold color={COLOR.MAIN} mTop={9}>
-                  의료상담 {Number(paymentData.price)?.toLocaleString()}원
+                <Text T6 color={COLOR.GRAY1}>
+                  {formatDate(new Date())}
                 </Text>
-                <Row mTop={18}>
-                  <Text T6 medium color={COLOR.GRAY1} mRight={42}>
-                    결제 금액
-                  </Text>
-                  <Text T6 color={COLOR.GRAY1}>
-                    {Number(paymentData.price)?.toLocaleString()}원 | 일시불
-                  </Text>
-                </Row>
-                <Row mTop={6}>
-                  <Text T6 medium color={COLOR.GRAY1} mRight={42}>
-                    결제 수단
-                  </Text>
-                  <Text T6 color={COLOR.GRAY1}>
-                    신용카드
-                  </Text>
-                </Row>
-                <Row mTop={6}>
-                  <Text T6 medium color={COLOR.GRAY1} mRight={42}>
-                    결제 일시
-                  </Text>
-                  <Text T6 color={COLOR.GRAY1}>
-                    {formatDate(new Date(biddingData?.P_AUTH_DT))}
-                  </Text>
-                </Row>
-              </PaddingContainer>
+              </Row>
+            )}
+          </PaddingContainer>
 
-              <DividingLine mTop={30} />
-            </>
-          )}
+          <DividingLine mTop={30} />
 
           <PaddingContainer>
             <Text T3 bold mTop={30}>

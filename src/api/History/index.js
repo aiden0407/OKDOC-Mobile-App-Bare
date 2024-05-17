@@ -163,7 +163,7 @@ export const getPurchaseInformation = async function (
 };
 // <--진료 상세 데이터 End-->
 
-export const canclePayment = async function (loginToken, purchaseId, P_TID) {
+export const cancelPayment = async function (loginToken, purchaseId, P_TID) {
   try {
     let options = {
       url: `${APIURL}/merchant/cancel/${purchaseId}`,
@@ -185,7 +185,7 @@ export const canclePayment = async function (loginToken, purchaseId, P_TID) {
 };
 
 // [!PROMOTION] 0원 결제 취소부
-export const cancleCashlessPayment = async function (loginToken, purchaseId) {
+export const cancelCashlessPayment = async function (loginToken, purchaseId) {
   try {
     let options = {
       url: `${APIURL}/merchant/cashless-cancel/${purchaseId}`,

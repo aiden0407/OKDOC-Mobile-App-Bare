@@ -3,7 +3,7 @@ import { useContext } from "react";
 import { ApiContext } from "context/ApiContext";
 import { AppContext } from "context/AppContext";
 import { Alert } from "react-native";
-import { dataDogBackendError, dataDogFrontendError } from "api/DataDog";
+import { dataDogFrontendError } from "api/DataDog";
 // import * as Clipboard from 'expo-clipboard';
 
 //Api
@@ -18,7 +18,9 @@ import {
   getBiddingInformation,
   getInvoiceInformation,
   getPurchaseInformation,
+  getInvoicePurchaseInformation,
 } from "api/History";
+import { getIosAuditLog, getAndroidAuditLog } from "api/Iap";
 
 export default function useHistoryUpdate() {
   const {
@@ -50,6 +52,16 @@ export default function useHistoryUpdate() {
         (obj) => obj.fullDocument?.bidding_id
       );
 
+      // iap 결제면서 insert가 남은 경우 unlock으로 update되지 않은 객체이므로 제거
+      puchaseHistory = puchaseHistory.filter(
+        (obj) =>
+          !(
+            (obj.fullDocument?.appleIapUnsignedTransaction ||
+              obj.fullDocument?.googleIapProductPurchase) &&
+            obj.operationType === "insert"
+          )
+      );
+
       // 진료일시 빠른 순으로 정렬
       puchaseHistory.sort((a, b) => {
         const startTimeA = new Date(
@@ -69,29 +81,78 @@ export default function useHistoryUpdate() {
         try {
           const response = await getHistoryStatus(obj.documentKey._id);
           const document = response.data.response;
-          if (document[document.length - 1].operationType === "insert") {
-            obj.STATUS = "RESERVED";
-          } else {
+          if (document[document.length - 1].operationType === "delete") {
             obj.STATUS = "CANCELED";
-            try {
-              await getAuditLog(accountData.loginToken, obj.fullDocument.id);
-              // 환자의 감사 목록은 환자만 확인 가능
-              obj.CANCELER = "PATIENT";
-            } catch (error) {
-              // 환자 이외의 주체에 의한 취소
-              const wishAtTime = new Date(
-                obj.fullDocument.treatment_appointment.hospital_treatment_room.start_time
-              );
-              const canceledTime = new Date(
-                document[document.length - 1].createdAt
-              );
 
-              if (canceledTime < wishAtTime) {
-                obj.CANCELER = "DOCTOR";
-              } else {
-                obj.CANCELER = "ADMIN";
+            if (obj.fullDocument?.appleIapUnsignedTransaction) {
+              try {
+                await getIosAuditLog(
+                  accountData.loginToken,
+                  obj.fullDocument.id
+                );
+                // 환자의 감사 목록은 환자만 확인 가능
+                obj.CANCELER = "PATIENT";
+              } catch {
+                // 환자 이외의 주체에 의한 취소
+                const wishAtTime = new Date(
+                  obj.fullDocument.treatment_appointment.hospital_treatment_room.start_time
+                );
+                const canceledTime = new Date(
+                  document[document.length - 1].createdAt
+                );
+
+                if (canceledTime < wishAtTime) {
+                  obj.CANCELER = "DOCTOR";
+                } else {
+                  obj.CANCELER = "ADMIN";
+                }
+              }
+            } else if (obj.fullDocument?.googleIapProductPurchase) {
+              try {
+                await getAndroidAuditLog(
+                  accountData.loginToken,
+                  obj.fullDocument.id
+                );
+                // 환자의 감사 목록은 환자만 확인 가능
+                obj.CANCELER = "PATIENT";
+              } catch {
+                // 환자 이외의 주체에 의한 취소
+                const wishAtTime = new Date(
+                  obj.fullDocument.treatment_appointment.hospital_treatment_room.start_time
+                );
+                const canceledTime = new Date(
+                  document[document.length - 1].createdAt
+                );
+
+                if (canceledTime < wishAtTime) {
+                  obj.CANCELER = "DOCTOR";
+                } else {
+                  obj.CANCELER = "ADMIN";
+                }
+              }
+            } else {
+              try {
+                await getAuditLog(accountData.loginToken, obj.fullDocument.id);
+                // 환자의 감사 목록은 환자만 확인 가능
+                obj.CANCELER = "PATIENT";
+              } catch {
+                // 환자 이외의 주체에 의한 취소
+                const wishAtTime = new Date(
+                  obj.fullDocument.treatment_appointment.hospital_treatment_room.start_time
+                );
+                const canceledTime = new Date(
+                  document[document.length - 1].createdAt
+                );
+
+                if (canceledTime < wishAtTime) {
+                  obj.CANCELER = "DOCTOR";
+                } else {
+                  obj.CANCELER = "ADMIN";
+                }
               }
             }
+          } else {
+            obj.STATUS = "RESERVED";
           }
         } catch (error) {
           throw error;
@@ -109,7 +170,7 @@ export default function useHistoryUpdate() {
             const opinion = response.data.response[0];
             obj.OPINION = opinion;
             obj.STATUS = "FINISHED";
-          } catch (error) {
+          } catch {
             // 소견서 제출 안된 케이스 => cctv patient_motion 조회로 환자의 진료 확정 확인
             try {
               const response = await getCCTVInformation(
@@ -140,7 +201,7 @@ export default function useHistoryUpdate() {
                   // 진료 전 'RESERVED'
                 }
               }
-            } catch (error) {
+            } catch {
               // cctv 기록이 없는 경우이므로 아직 입장 전
               const currentTime = new Date();
               const wishAtTime = new Date(
@@ -166,8 +227,8 @@ export default function useHistoryUpdate() {
       // 모든 히스토리에 데이터 추가
       for (const obj of puchaseHistory) {
         // 프로덕트 정보 추가
-        // obj.productInfo = productList[2];
-        obj.productInfo = productList[4];
+        obj.productInfo = productList[2];
+        // obj.productInfo = productList[4];
         obj.id = obj.fullDocument.treatment_appointment.id;
         obj.bidding_id = obj.fullDocument.bidding_id;
 
@@ -205,14 +266,22 @@ export default function useHistoryUpdate() {
           const remainingTime = wishAtTime - currentTime;
           const remainingSeconds = Math.floor(remainingTime / 1000);
 
-          // 인보이스가 생성되어 있을 때 결제 필요 여부 확인, 가장 오래된 인보이스부터 결제 유도
-          if (!invoiceInfo?.P_TID) {
-            if (
-              remainingSeconds < -900 &&
-              obj.invoiceInfo.product.price !== 0
-            ) {
-              // 15분이 지났고 0원이 아니어야만 needPayment에 추가
-              needPayment = obj;
+          // 인보이스가 생성되어 있을 때 결제 여부 확인, 가장 오래된 인보이스부터 결제 유도
+          if (obj.invoiceInfo) {
+            try {
+              await getInvoicePurchaseInformation(
+                accountData.loginToken,
+                obj.invoiceInfo.id
+              );
+            } catch {
+              if (
+                remainingSeconds < -900 &&
+                obj.invoiceInfo.product.price !== 0
+              ) {
+                // 15분이 지났고 0원이 아니어야만 needPayment에 추가
+                obj.invoiceInfo.needPayment = true;
+                needPayment = obj;
+              }
             }
           }
 
@@ -226,7 +295,7 @@ export default function useHistoryUpdate() {
               obj.STATUS = "IN_TREATMENT";
             }
           }
-        } catch (error) {
+        } catch {
           // 연장이 없었어서 인보이스가 없는 경우
         }
 
@@ -244,13 +313,20 @@ export default function useHistoryUpdate() {
         }
 
         const date = new Date(obj.wish_at);
-        const year = date.getFullYear();
+        const year = date.getFullYear().toString();
         const month = (date.getMonth() + 1).toString().padStart(2, "0");
         const day = date.getDate().toString().padStart(2, "0");
-        const hour = date.getHours().toString().padStart(2, "0");
-        const minute = date.getMinutes().toString().padStart(2, "0");
-        obj.date = `${year}.${month}.${day}`;
-        obj.time = `${hour}:${minute}`;
+        let hours = date.getHours();
+        const minutes = date.getMinutes().toString().padStart(2, "0");
+        if (hours === 0) {
+          hours = 24;
+        }
+        const formattedHours = hours.toString().padStart(2, "0");
+        const formattedDate = `${year}.${month}.${day}`;
+        const formattedTime = `${formattedHours}:${minutes}`;
+        const adjustedTime = formattedTime.replace("24:", "00:");
+        obj.date = formattedDate;
+        obj.time = adjustedTime;
 
         if (obj.STATUS === "IN_TREATMENT") {
           contextHistorySet.underReservation.unshift(obj);
@@ -274,7 +350,9 @@ export default function useHistoryUpdate() {
       appContextDispatch({ type: "HISTORY_DATA_UPDATED" });
       // await Clipboard.setStringAsync(JSON.stringify(contextHistorySet));
     } catch (error) {
-      dataDogFrontendError(error);
+      if (!error?.data) {
+        dataDogFrontendError(error);
+      }
       appContextDispatch({ type: "HISTORY_DATA_UPDATED" });
       if (error.status === 429) {
         Alert.alert(

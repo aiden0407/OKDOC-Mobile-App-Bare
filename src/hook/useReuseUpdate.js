@@ -15,22 +15,26 @@ export default function useReuseUpdate() {
   const updateReuse = async function () {
     let reuseTickets = 0;
 
-    try {
-      const iosReuseResponse = await getIosReuseBidding(accountData.loginToken);
-      const iosTickets = iosReuseResponse.data.response.length;
-      reuseTickets += iosTickets;
-    } catch (error) {
-      // reuse가 없는 경우 statusCode 404
-    }
+    if (accountData.loginToken) {
+      try {
+        const iosReuseResponse = await getIosReuseBidding(
+          accountData.loginToken
+        );
+        const iosTickets = iosReuseResponse.data.response.length;
+        reuseTickets += iosTickets;
+      } catch (error) {
+        // reuse가 없는 경우 statusCode 404
+      }
 
-    try {
-      const androidReuseResponse = await getAndroidReuseBidding(
-        accountData.loginToken
-      );
-      const androidTickets = androidReuseResponse.data.response.length;
-      reuseTickets += androidTickets;
-    } catch (error) {
-      // reuse가 없는 경우 statusCode 404
+      try {
+        const androidReuseResponse = await getAndroidReuseBidding(
+          accountData.loginToken
+        );
+        const androidTickets = androidReuseResponse.data.response.length;
+        reuseTickets += androidTickets;
+      } catch (error) {
+        // reuse가 없는 경우 statusCode 404
+      }
     }
 
     dispatch({
