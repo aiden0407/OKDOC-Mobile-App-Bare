@@ -118,8 +118,8 @@ android {
         applicationId 'kr.co.insunginfo.okdoc'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 35
-        versionName "2.1.0"
+        versionCode 46
+        versionName "2.2.2"
         missingDimensionStrategy "store", "play"
     }
 

@@ -15,6 +15,9 @@
 ```
 yarn install
 cd ios && pod install
+
+// /ios에 main.jsbundle 파일 미존재 시
+yarn react-native bundle --entry-file='index.js' --bundle-output='./ios/main.jsbundle' --dev=false --platform='ios' 
 ```
 
 #### ios 및 android 실행
